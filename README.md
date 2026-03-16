@@ -4,6 +4,18 @@ Real-time traffic monitoring for the Arequipa ↔ Km 48 (La Repartición) corrid
 
 Built for the Arequipa community. Free, open-source, no ads.
 
+---
+
+### Screenshots
+
+| Map view | Route cards & patterns |
+|:--------:|:----------------------:|
+| <img src="screenshots/main.png" alt="Map with live traffic" width="320"> | <img src="screenshots/routes.png" alt="Route cards and hourly charts" width="320"> |
+
+*Live traffic map with speed-colored polylines (green/amber/red), SUTRAN incidents, and hourly congestion patterns per route.*
+
+---
+
 ## What it does
 
 - Polls Google Maps Routes API every 5 minutes for live speed data
@@ -62,6 +74,7 @@ Open [http://localhost:3000](http://localhost:3000). The scheduler starts automa
 | `npm run start` | Start production server |
 | `npm test` | Run test suite (Vitest) |
 | `npm run test:watch` | Run tests in watch mode |
+| `npm run screenshots` | Capture README screenshots (requires `npm run dev` in another terminal) |
 | `npm run lint` | Run ESLint |
 
 ## Project structure

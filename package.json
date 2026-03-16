@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "screenshots": "node scripts/screenshot.mjs"
   },
   "dependencies": {
     "@googlemaps/polyline-codec": "^1.0.28",
@@ -33,6 +34,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "playwright": "^1.58.2",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.0"
