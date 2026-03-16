@@ -11,7 +11,8 @@ import RouteSummaryCard from "@/components/RoadSummary";
 import HourlyChart from "@/components/HourlyChart";
 import TimeSimulator from "@/components/TimeSimulator";
 
-// ── Route Section Component ──
+import { Map } from "lucide-react";
+
 function RouteSection({
   routeId,
   routeData,
@@ -27,21 +28,20 @@ function RouteSection({
   const color = ROUTE_COLORS[routeId];
 
   return (
-    <section className="mt-6">
-      {/* ── Route Header Bar ── */}
+    <section className="mt-5 mx-3 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-slate-900/50 border border-slate-800/80 shadow-2xl shadow-black/40">
       <div
-        className="mx-4 rounded-xl overflow-hidden mb-4 shadow-lg"
-        style={{ border: `1px solid ${color}33` }}
+        className="rounded-xl sm:rounded-2xl overflow-hidden mb-4 shadow-xl shadow-black/20"
+        style={{ border: `1px solid ${color}33`, backgroundColor: '#0f172a' }}
       >
         <div
-          className="px-4 py-3 flex items-center gap-3"
+          className="px-3.5 py-3 sm:px-5 sm:py-4 flex items-center gap-3"
           style={{
             background: `linear-gradient(90deg, ${color}22 0%, transparent 100%)`,
             borderLeft: `4px solid ${color}`,
           }}
         >
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-lg sm:text-xl flex-shrink-0"
             style={{
               backgroundColor: `${color}22`,
               border: `2px solid ${color}55`,
@@ -49,40 +49,34 @@ function RouteSection({
           >
             {config.icon}
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-bold text-lg tracking-tight" style={{ color }}>
-              {config.name}
-            </h2>
-          </div>
+          <h2 className="font-bold text-base sm:text-lg tracking-tight" style={{ color }}>
+            {config.name}
+          </h2>
         </div>
       </div>
 
-      {/* ── Direction Cards: side by side on wider screens ── */}
-      <div className="px-4 grid grid-cols-1 min-[480px]:grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3 mb-4">
         <RouteSummaryCard data={routeData.salida} />
         <RouteSummaryCard data={routeData.ingreso} />
       </div>
 
-      {/* ── Hourly Chart for this route ── */}
-      <div className="px-4">
-        <HourlyChart
-          patterns={routeData.hourlyPatterns}
-          routeId={routeId}
-          routeColor={color}
-          routeName={config.shortName}
-          currentHour={currentHour}
-          isLive={isLive}
-        />
-      </div>
+      <HourlyChart
+        patterns={routeData.hourlyPatterns}
+        routeId={routeId}
+        routeColor={color}
+        routeName={config.shortName}
+        currentHour={currentHour}
+        isLive={isLive}
+      />
     </section>
   );
 }
 
-// ── Main Page ──
 export default function Home() {
   const {
     states,
     incidents,
+    polylines,
     routeData,
     simulatedHour,
     setSimulatedHour,
@@ -97,32 +91,21 @@ export default function Home() {
     <main className="min-h-screen max-w-2xl mx-auto pb-8">
       {/* Header */}
       <header
-        className="sticky top-0 z-50 backdrop-blur-md px-4 py-3 border-b"
-        style={{ backgroundColor: "rgba(26,26,46,0.92)", borderColor: "#2A2A4A" }}
+        className="sticky top-0 z-50 backdrop-blur-md px-3.5 sm:px-5 py-3 border-b border-slate-800/50"
+        style={{ backgroundColor: "rgba(2, 6, 23, 0.85)" }}
       >
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: "#E8E8E8" }}>
-              🚦 TráficoAQP
-            </h1>
-            <p className="text-xs" style={{ color: "#8B8BA3" }}>
-              Corredor Arequipa — Km 48
-            </p>
-          </div>
+          <h1 className="text-base sm:text-xl font-bold text-slate-50">
+            Corredor AQP ↔ KM 48
+          </h1>
           <div className="text-right">
-            <p
-              className="text-lg font-bold tabular-nums"
-              style={{ color: "#E8E8E8" }}
-            >
+            <p className="text-sm sm:text-lg font-bold tabular-nums text-slate-50" suppressHydrationWarning>
               {formatPeruTime(now)}
             </p>
-            <p className="text-[10px]" style={{ color: "#8B8BA3" }}>
+            <p className="text-[10px] text-slate-400">
               {isLive ? (
-                <span className="flex items-center gap-1 justify-end">
-                  <span
-                    className="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
-                    style={{ backgroundColor: "#00E396" }}
-                  />
+                <span className="flex items-center gap-1.5 justify-end">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse bg-emerald-500" />
                   Actualizado {getTimeAgo(lastUpdated.toISOString())}
                 </span>
               ) : (
@@ -133,19 +116,17 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="px-4 space-y-4 mt-4">
-        {/* Incident Banner */}
+      <div className="px-3 sm:px-4 space-y-3 mt-3">
         <IncidentBanner incidents={incidents} />
 
-        {/* Traffic Map */}
-        <div
-          className="h-[50vh] min-h-[320px] rounded-xl overflow-hidden shadow-lg border"
-          style={{ borderColor: "#2A2A4A" }}
-        >
-          <TrafficMap states={states} incidents={incidents} />
+        <div className="flex items-center gap-2 px-0.5">
+          <Map className="w-4 h-4 text-slate-400" />
+          <h2 className="text-xs sm:text-sm font-bold text-slate-200">Estado de la Vía</h2>
+        </div>
+        <div className="h-[45vh] min-h-[280px] rounded-xl sm:rounded-2xl overflow-hidden shadow-xl shadow-black/20 border border-slate-800/50">
+          <TrafficMap states={states} incidents={incidents} polylines={polylines} />
         </div>
 
-        {/* ══ Shared Time Simulator ══ */}
         <TimeSimulator
           simulatedHour={simulatedHour}
           onHourChange={setSimulatedHour}
@@ -153,7 +134,6 @@ export default function Home() {
         />
       </div>
 
-      {/* ══════════ VÍA UCHUMAYO ══════════ */}
       <RouteSection
         routeId="uchumayo"
         routeData={routeData.uchumayo}
@@ -161,7 +141,6 @@ export default function Home() {
         isLive={isLive}
       />
 
-      {/* ══════════ VÍA CERRO VERDE ══════════ */}
       <RouteSection
         routeId="cerro-verde"
         routeData={routeData["cerro-verde"]}
@@ -169,9 +148,8 @@ export default function Home() {
         isLive={isLive}
       />
 
-      {/* Footer */}
-      <footer className="mt-8 px-4 text-center">
-        <p className="text-xs" style={{ color: "#8B8BA3" }}>
+      <footer className="mt-8 px-3 pb-6 text-center">
+        <p className="text-[10px] sm:text-xs text-slate-500">
           Proyecto comunitario · mathiasbc@gmail.com · Arequipa, Perú
         </p>
       </footer>

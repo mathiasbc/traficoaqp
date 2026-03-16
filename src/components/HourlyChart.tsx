@@ -12,8 +12,10 @@ import {
 } from "recharts";
 import type { HourlyPattern, RouteId } from "@/lib/types";
 
-const SALIDA_COLOR = "#4CC9F0";  // cyan — outbound
-const INGRESO_COLOR = "#F4A261"; // amber — inbound
+import { BarChart3 } from "lucide-react";
+
+const SALIDA_COLOR = "#38bdf8";  // blue-400 — outbound
+const INGRESO_COLOR = "#fbbf24"; // amber-400 — inbound
 
 interface Props {
   patterns: HourlyPattern[];  // Pre-filtered for this route
@@ -36,7 +38,6 @@ export default function HourlyChart({ patterns, routeColor, routeName, currentHo
     const ing = ingresoData.find((p) => p.hour === i);
     return {
       hour: i,
-      label: i % 3 === 0 ? `${i}h` : "",
       salida: sal?.avgCongestionRatio ?? 0,
       ingreso: ing?.avgCongestionRatio ?? 0,
     };
@@ -50,47 +51,49 @@ export default function HourlyChart({ patterns, routeColor, routeName, currentHo
   const yMax = Math.ceil(maxRatio + 0.5);
 
   return (
-    <div
-      className="rounded-xl p-4 shadow-lg border"
-      style={{ backgroundColor: "#16213E", borderColor: "#2A2A4A" }}
-    >
-      <div className="flex items-center justify-between mb-3">
+    <div className="rounded-xl sm:rounded-2xl p-3.5 sm:p-5 shadow-lg shadow-black/10 border border-slate-800/50 bg-slate-950/50">
+      <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center justify-between gap-2 mb-4">
         <div>
-          <h3 className="font-bold text-sm" style={{ color: routeColor }}>
+          <h3 className="font-bold text-xs sm:text-sm flex items-center gap-1.5" style={{ color: routeColor }}>
+            <BarChart3 className="w-3.5 h-3.5" />
             Congestión {routeName} (día típico)
           </h3>
-          <p className="text-xs" style={{ color: "#8B8BA3" }}>Multiplicador vs flujo libre</p>
+          <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">Multiplicador vs flujo libre</p>
         </div>
-        <div className="flex items-center gap-3 text-xs" style={{ color: "#8B8BA3" }}>
+        <div className="flex items-center gap-2.5 text-[11px] font-medium text-slate-400">
           <span className="flex items-center gap-1">
             <span
-              className="inline-block w-3 h-3 rounded-sm"
+              className="inline-block w-2 h-2 rounded-full"
               style={{ backgroundColor: SALIDA_COLOR }}
             />
-            Salida →
+            Salida
           </span>
           <span className="flex items-center gap-1">
             <span
-              className="inline-block w-3 h-3 rounded-sm"
+              className="inline-block w-2 h-2 rounded-full"
               style={{ backgroundColor: INGRESO_COLOR }}
             />
-            ← Ingreso
+            Ingreso
           </span>
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={170}>
         <BarChart data={chartData} barGap={0} barCategoryGap="15%">
           <XAxis
-            dataKey="label"
-            tick={{ fontSize: 10, fill: "#8B8BA3" }}
+            dataKey="hour"
+            tick={{ fontSize: 10, fill: "#64748b" }}
             axisLine={false}
             tickLine={false}
             interval={0}
+            tickFormatter={(h: number) => {
+              if (h % 3 === 0 || h === 23) return `${h}h`;
+              return "";
+            }}
           />
           <YAxis
             domain={[0, yMax]}
-            tick={{ fontSize: 10, fill: "#8B8BA3" }}
+            tick={{ fontSize: 10, fill: "#64748b" }}
             axisLine={false}
             tickLine={false}
             width={25}
@@ -104,25 +107,24 @@ export default function HourlyChart({ patterns, routeColor, routeName, currentHo
               const ing = payload.find((p) => p.dataKey === "ingreso")?.value as number;
               return (
                 <div
-                  className="rounded-lg p-2 shadow-md text-xs border"
-                  style={{ backgroundColor: "#0F3460", borderColor: "#2A2A4A", color: "#E8E8E8" }}
+                  className="rounded-xl p-3 shadow-xl text-xs border border-slate-800/80 bg-slate-900/95 backdrop-blur-sm text-slate-50"
                 >
-                  <p className="font-bold mb-1">
+                  <p className="font-bold mb-2 text-slate-300">
                     {String(hour).padStart(2, "0")}:00
                   </p>
-                  <p style={{ color: SALIDA_COLOR }}>
-                    Salida →: {sal?.toFixed(1)}x
+                  <p className="font-medium" style={{ color: SALIDA_COLOR }}>
+                    Salida: {sal?.toFixed(1)}x
                   </p>
-                  <p style={{ color: INGRESO_COLOR }}>
-                    ← Ingreso: {ing?.toFixed(1)}x
+                  <p className="font-medium mt-1" style={{ color: INGRESO_COLOR }}>
+                    Ingreso: {ing?.toFixed(1)}x
                   </p>
                 </div>
               );
             }}
           />
           <ReferenceLine
-            x={currentHour % 3 === 0 ? `${currentHour}h` : ""}
-            stroke="#E8E8E8"
+            x={currentHour}
+            stroke="#334155"
             strokeDasharray="3 3"
             strokeWidth={1}
           />

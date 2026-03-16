@@ -33,19 +33,40 @@ export interface TrafficState {
 
 export type IncidentType = "accidente" | "obras" | "cierre" | "policia" | "clima" | "derrumbe";
 export type IncidentSeverity = "critico" | "alto" | "medio" | "bajo";
+export type IncidentSource = "sutran" | "covisur" | "manual";
 
 export interface Incident {
   id: string;
-  routeId: RouteId;
-  segmentIndex: number;
+  source: IncidentSource;
+  routeId: RouteId | null;
+  segmentId: string | null;
   type: IncidentType;
   severity: IncidentSeverity;
   title: string;
   description: string;
   coords: [number, number];
+  kmMarker: string | null;
   reportedAt: string;
-  reportedBy: string;
+  updatedAt: string | null;
   active: boolean;
+}
+
+export type SpeedCategory = "NORMAL" | "SLOW" | "TRAFFIC_JAM";
+
+export interface SpeedInterval {
+  startPolylinePointIndex: number;
+  endPolylinePointIndex: number;
+  speed: SpeedCategory;
+}
+
+export interface RoutePolyline {
+  routeId: RouteId;
+  direction: Direction;
+  encodedPolyline: string;
+  speedIntervals: SpeedInterval[];
+  totalDurationSec: number;
+  totalDistanceM: number;
+  updatedAt: string;
 }
 
 export interface HourlyPattern {
@@ -83,7 +104,3 @@ export interface RouteSummaryData {
   activeIncidentCount: number;
 }
 
-export interface TrafficProvider {
-  getSegmentTraffic(segment: TrafficSegment): Promise<TrafficState>;
-  getRouteTime(routeId: string): Promise<{ totalMinutes: number; segments: TrafficState[] }>;
-}

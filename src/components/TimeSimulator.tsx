@@ -1,9 +1,22 @@
 "use client";
 
+import { Radio, Undo2 } from "lucide-react";
+
 interface Props {
   simulatedHour: number | null;
   onHourChange: (hour: number | null) => void;
   isLive: boolean;
+}
+
+const PERIODS = [
+  { start: 0, end: 5, label: "Madrugada", icon: "🌙" },
+  { start: 6, end: 11, label: "Mañana", icon: "🌅" },
+  { start: 12, end: 17, label: "Tarde", icon: "☀️" },
+  { start: 18, end: 23, label: "Noche", icon: "🌆" },
+] as const;
+
+function getTimePeriod(hour: number) {
+  return PERIODS.find((p) => hour >= p.start && hour <= p.end) ?? PERIODS[0];
 }
 
 export default function TimeSimulator({
@@ -13,71 +26,67 @@ export default function TimeSimulator({
 }: Props) {
   const currentHour = new Date().getHours();
   const displayHour = simulatedHour ?? currentHour;
+  const period = getTimePeriod(displayHour);
 
   return (
-    <div
-      className="rounded-xl p-4 shadow-lg border"
-      style={{ backgroundColor: "#16213E", borderColor: "#2A2A4A" }}
-    >
+    <div className="rounded-2xl p-4 border border-slate-800/50 bg-slate-900/80 shadow-lg shadow-black/10">
       <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="font-bold text-sm" style={{ color: "#E8E8E8" }}>
-            Simulador de hora
-          </h3>
-          <p className="text-xs" style={{ color: "#8B8BA3" }}>
-            {isLive ? (
-              <span className="flex items-center gap-1">
-                <span
-                  className="inline-block w-2 h-2 rounded-full animate-pulse"
-                  style={{ backgroundColor: "#00E396" }}
-                />
-                En vivo
-              </span>
-            ) : (
-              `Simulando: ${String(displayHour).padStart(2, "0")}:00`
-            )}
-          </p>
+        <div className="flex items-center gap-2">
+          {isLive ? (
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              En vivo
+            </span>
+          ) : (
+            <button
+              onClick={() => onHourChange(null)}
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20 hover:bg-blue-500/20 transition-all active:scale-95"
+            >
+              <Undo2 className="w-3 h-3" />
+              Volver a En Vivo
+            </button>
+          )}
+          <span className="text-[11px] text-slate-500">
+            {period.icon} {period.label}
+          </span>
         </div>
-        {!isLive && (
-          <button
-            onClick={() => onHourChange(null)}
-            className="text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
-            style={{
-              backgroundColor: "#0A2E1F",
-              color: "#00E396",
-              border: "1px solid #00E39644",
-            }}
-          >
-            Ahora
-          </button>
-        )}
+        <span className="text-xl font-bold tabular-nums text-white tracking-tight">
+          {String(displayHour).padStart(2, "0")}
+          <span className="text-slate-500">:</span>
+          00
+        </span>
       </div>
 
-      <div className="space-y-2">
+      <div>
         <input
           type="range"
           min={0}
           max={23}
           value={displayHour}
           onChange={(e) => onHourChange(parseInt(e.target.value))}
-          className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-          style={{ backgroundColor: "#2A2A4A" }}
+          className="time-slider w-full"
         />
-        <div className="flex justify-between text-[10px]" style={{ color: "#6B6B8D" }}>
-          {[0, 3, 6, 9, 12, 15, 18, 21].map((h) => (
-            <span key={h}>{h}h</span>
+        <div className="flex justify-between mt-1 px-0.5">
+          {[0, 3, 6, 9, 12, 15, 18, 21, 23].map((h) => (
+            <span
+              key={h}
+              className={`text-[10px] tabular-nums transition-colors ${
+                h === displayHour
+                  ? "text-blue-400 font-bold"
+                  : "text-slate-600 font-medium"
+              }`}
+            >
+              {String(h).padStart(2, "0")}
+            </span>
           ))}
         </div>
       </div>
 
-      <div className="mt-3 text-center">
-        <span
-          className="text-3xl font-bold tabular-nums"
-          style={{ color: "#E8E8E8" }}
-        >
-          {String(displayHour).padStart(2, "0")}:00
-        </span>
-      </div>
+      {isLive && (
+        <p className="text-[10px] text-slate-600 text-center mt-1.5">
+          Desliza para simular otra hora del día
+        </p>
+      )}
     </div>
   );
 }

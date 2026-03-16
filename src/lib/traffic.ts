@@ -1,16 +1,20 @@
-import type { TrafficState, RouteId, Direction, RouteSummaryData, RouteDirectionKey } from "./types";
+import type { TrafficState, Incident, RouteId, Direction, RouteSummaryData, RouteDirectionKey } from "./types";
 import { getCongestionLevel } from "./colors";
 import { ROUTE_CONFIG, DIRECTION_INFO } from "./roads";
-import { MOCK_INCIDENTS } from "./mock-data";
 
 export function calculateRouteSummary(
   routeId: RouteId,
   direction: Direction,
-  states: TrafficState[]
+  states: TrafficState[],
+  incidents: Incident[]
 ): RouteSummaryData {
   const config = ROUTE_CONFIG[routeId];
   const key: RouteDirectionKey = `${routeId}-${direction}`;
   const dirInfo = DIRECTION_INFO[direction];
+
+  const routeIncidentCount = incidents.filter(
+    (i) => i.routeId === routeId && i.active
+  ).length;
 
   // Closed routes: return closed summary with no traffic data
   if (config.closed) {
@@ -27,9 +31,7 @@ export function calculateRouteSummary(
       totalEstimatedMinutes: 0,
       overallCongestionLevel: "colapsado",
       segments: [],
-      activeIncidentCount: MOCK_INCIDENTS.filter(
-        (i) => i.routeId === routeId && i.active
-      ).length,
+      activeIncidentCount: routeIncidentCount,
     };
   }
 
@@ -60,9 +62,7 @@ export function calculateRouteSummary(
     totalEstimatedMinutes,
     overallCongestionLevel: getCongestionLevel(avgRatio),
     segments: routeStates,
-    activeIncidentCount: MOCK_INCIDENTS.filter(
-      (i) => i.routeId === routeId && i.active
-    ).length,
+    activeIncidentCount: routeIncidentCount,
   };
 }
 

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
@@ -8,9 +8,16 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "TráficoAQP — Corredor Arequipa–Km 48 en tiempo real",
+  title: "Corredor Arequipa–Km 48 en tiempo real",
   description:
     "Monitoreo en tiempo real del corredor Arequipa–Km 48: Vía Uchumayo y Vía Cerro Verde. Estado de tráfico por dirección.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -29,8 +36,8 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${spaceGrotesk.variable} font-sans antialiased`}
-        style={{ backgroundColor: "#1A1A2E" }}
+        className={`${spaceGrotesk.variable} font-sans antialiased text-slate-50`}
+        style={{ backgroundColor: "#020617" }}
       >
         {children}
       </body>

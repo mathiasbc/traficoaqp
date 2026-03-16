@@ -1,4 +1,4 @@
-import type { TrafficState, Incident, HourlyPattern, RouteId, Direction } from "./types";
+import type { TrafficState, HourlyPattern, RouteId, Direction } from "./types";
 import { getCongestionLevel } from "./colors";
 import { ALL_SEGMENTS, ROUTE_CONFIG } from "./roads";
 
@@ -181,46 +181,3 @@ export function generateHourlyPatterns(): HourlyPattern[] {
   return patterns;
 }
 
-export const MOCK_INCIDENTS: Incident[] = [
-  {
-    id: "inc-001",
-    routeId: "uchumayo",
-    segmentIndex: 2,
-    type: "obras",
-    severity: "medio",
-    title: "Mantenimiento preventivo Puente Km 24+900",
-    description:
-      "COVISUR realizando trabajos de mantenimiento en losa. Tránsito operativo con un carril habilitado.",
-    coords: [-16.438366, -71.691639],
-    reportedAt: "2026-03-12T06:00:00-05:00",
-    reportedBy: "covisur",
-    active: true,
-  },
-  {
-    id: "inc-002",
-    routeId: "uchumayo",
-    segmentIndex: 0,
-    type: "policia",
-    severity: "bajo",
-    title: "Control vehicular salida Sachaca",
-    description:
-      "Policía de tránsito regulando flujo en hora punta. Demora aproximada 5-10 min.",
-    coords: [-16.405032, -71.565809],
-    reportedAt: "2026-03-12T07:15:00-05:00",
-    reportedBy: "comunidad",
-    active: true,
-  },
-  {
-    id: "inc-003",
-    routeId: "cerro-verde",
-    segmentIndex: 1,
-    type: "policia",
-    severity: "medio",
-    title: "Control policial zona minera Cerro Verde",
-    description: "Policía regulando tráfico en acceso a zona minera.",
-    coords: [-16.500009, -71.628425],
-    reportedAt: "2026-03-12T09:15:00-05:00",
-    reportedBy: "comunidad",
-    active: true,
-  },
-];
