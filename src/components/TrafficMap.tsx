@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { TrafficState, Incident, RoutePolyline } from "@/lib/types";
+import type { TrafficState, Incident, RoutePolyline, Direction } from "@/lib/types";
 
 const TrafficMapInner = dynamic(() => import("./TrafficMapInner"), {
   ssr: false,
@@ -19,8 +19,9 @@ interface Props {
   states: TrafficState[];
   incidents: Incident[];
   polylines: RoutePolyline[];
+  direction: Direction;
 }
 
-export default function TrafficMap({ states, incidents, polylines }: Props) {
-  return <TrafficMapInner states={states} incidents={incidents} polylines={polylines} />;
+export default function TrafficMap({ states, incidents, polylines, direction }: Props) {
+  return <TrafficMapInner states={states} incidents={incidents} polylines={polylines} direction={direction} />;
 }

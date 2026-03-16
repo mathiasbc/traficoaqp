@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useTrafficData, type RouteTrafficData } from "@/hooks/useTrafficData";
 import { formatPeruTime, getTimeAgo } from "@/lib/traffic";
 import { ROUTE_CONFIG } from "@/lib/roads";
 import { ROUTE_COLORS } from "@/lib/colors";
-import type { RouteId } from "@/lib/types";
+import type { RouteId, Direction } from "@/lib/types";
 import TrafficMap from "@/components/TrafficMap";
 import IncidentBanner from "@/components/IncidentBanner";
 import RouteSummaryCard from "@/components/RoadSummary";
@@ -84,6 +85,7 @@ export default function Home() {
     isLive,
   } = useTrafficData();
 
+  const [direction, setDirection] = useState<Direction>("salida");
   const now = new Date();
   const currentHour = simulatedHour ?? now.getHours();
 
@@ -119,12 +121,29 @@ export default function Home() {
       <div className="px-3 sm:px-4 space-y-3 mt-3">
         <IncidentBanner incidents={incidents} />
 
-        <div className="flex items-center gap-2 px-0.5">
-          <Map className="w-4 h-4 text-slate-400" />
-          <h2 className="text-xs sm:text-sm font-bold text-slate-200">Estado de la Vía</h2>
+        <div className="flex items-center justify-between px-0.5">
+          <div className="flex items-center gap-2">
+            <Map className="w-4 h-4 text-slate-400" />
+            <h2 className="text-xs sm:text-sm font-bold text-slate-200">Estado de la Vía</h2>
+          </div>
+          <div className="flex rounded-xl overflow-hidden border border-slate-700/80 shadow-lg shadow-black/30">
+            {(["salida", "ingreso"] as Direction[]).map((d) => (
+              <button
+                key={d}
+                onClick={() => setDirection(d)}
+                className={`px-5 py-2.5 text-sm font-bold tracking-wide transition-colors ${
+                  d === direction
+                    ? "bg-blue-600 text-white shadow-inner"
+                    : "bg-slate-800 text-slate-400 hover:text-slate-200 active:bg-slate-700"
+                }`}
+              >
+                {d === "salida" ? "Salida" : "Ingreso"}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="h-[45vh] min-h-[280px] rounded-xl sm:rounded-2xl overflow-hidden shadow-xl shadow-black/20 border border-slate-800/50">
-          <TrafficMap states={states} incidents={incidents} polylines={polylines} />
+          <TrafficMap states={states} incidents={incidents} polylines={polylines} direction={direction} />
         </div>
 
         <TimeSimulator

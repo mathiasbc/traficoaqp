@@ -11,7 +11,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { decode } from "@googlemaps/polyline-codec";
-import type { TrafficState, Incident, RoutePolyline, SpeedCategory, RouteId } from "@/lib/types";
+import type { TrafficState, Incident, RoutePolyline, SpeedCategory, RouteId, Direction } from "@/lib/types";
 import {
   ALL_SEGMENTS,
   INCIDENT_ICONS,
@@ -32,6 +32,7 @@ interface Props {
   states: TrafficState[];
   incidents: Incident[];
   polylines: RoutePolyline[];
+  direction: Direction;
 }
 
 const MAP_CENTER: [number, number] = [-16.47, -71.67];
@@ -241,9 +242,11 @@ function findUncoveredSegments(
 function DynamicPolylines({
   polylines,
   incidents,
+  direction,
 }: {
   polylines: RoutePolyline[];
   incidents: Incident[];
+  direction: Direction;
 }) {
   const speedSegments = useMemo(
     () => buildSpeedSegments(polylines),
@@ -264,7 +267,7 @@ function DynamicPolylines({
       if (!staticPath) continue;
 
       const rp = polylines.find(
-        (p) => p.routeId === routeId && p.direction === "salida"
+        (p) => p.routeId === routeId && p.direction === direction
       );
       if (!rp) continue;
 
@@ -277,17 +280,17 @@ function DynamicPolylines({
     }
 
     return segments;
-  }, [incidents, polylines]);
+  }, [incidents, polylines, direction]);
 
-  const salidaPolylines = polylines.filter((p) => p.direction === "salida");
+  const dirPolylines = polylines.filter((p) => p.direction === direction);
 
   return (
     <>
-      {salidaPolylines.map((rp) => {
+      {dirPolylines.map((rp) => {
         const decoded = decode(rp.encodedPolyline, 5) as [number, number][];
         return (
           <Polyline
-            key={`shadow-${rp.routeId}`}
+            key={`shadow-${rp.routeId}-${direction}`}
             positions={decoded}
             pathOptions={{
               color: ROUTE_COLORS[rp.routeId],
@@ -301,7 +304,7 @@ function DynamicPolylines({
       })}
 
       {speedSegments
-        .filter((s) => s.direction === "salida")
+        .filter((s) => s.direction === direction)
         .map((seg, i) => (
           <Polyline
             key={`speed-${seg.routeId}-${seg.direction}-${i}`}
@@ -338,92 +341,99 @@ export default function TrafficMapInner({
   states,
   incidents,
   polylines,
+  direction,
 }: Props) {
   const hasDynamicPolylines = polylines.length > 0;
 
   return (
     <MapContainer
-      center={MAP_CENTER}
-      zoom={11}
-      className="h-full w-full rounded-xl"
-      zoomControl={false}
-      attributionControl={true}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-      />
+        center={MAP_CENTER}
+        zoom={11}
+        className="h-full w-full rounded-xl"
+        zoomControl={false}
+        attributionControl={true}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        />
 
-      <Marker position={AREQUIPA_CENTER} icon={arequipaIcon}>
-        <Popup>
-          <div className="text-sm font-bold text-slate-100">Arequipa</div>
-          <div className="text-xs text-slate-400">
-            Sachaca / Inicio corredor
-          </div>
-        </Popup>
-      </Marker>
+        <Marker position={AREQUIPA_CENTER} icon={arequipaIcon}>
+          <Popup>
+            <div className="text-sm font-bold text-slate-100">Arequipa</div>
+            <div className="text-xs text-slate-400">
+              Sachaca / Inicio corredor
+            </div>
+          </Popup>
+        </Marker>
 
-      <Marker position={KM48_COORDS} icon={km48Icon}>
-        <Tooltip
-          permanent
-          direction="bottom"
-          offset={[0, 14]}
-          className="km48-label"
-        >
-          <span
-            style={{
-              background: "#0f172a",
-              color: "#10b981",
-              fontWeight: 700,
-              fontSize: "11px",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              border: "1px solid #10b981",
-              letterSpacing: "0.5px",
-              whiteSpace: "nowrap",
-            }}
+        <Marker position={KM48_COORDS} icon={km48Icon}>
+          <Tooltip
+            permanent
+            direction="bottom"
+            offset={[0, 14]}
+            className="km48-label"
           >
-            KM 48
-          </span>
-        </Tooltip>
-        <Popup>
-          <div className="text-sm font-bold text-slate-100">{KM48_LABEL}</div>
-          <div className="text-xs text-slate-400">Punto de confluencia</div>
-        </Popup>
-      </Marker>
+            <span
+              style={{
+                background: "#0f172a",
+                color: "#10b981",
+                fontWeight: 700,
+                fontSize: "11px",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                border: "1px solid #10b981",
+                letterSpacing: "0.5px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              KM 48
+            </span>
+          </Tooltip>
+          <Popup>
+            <div className="text-sm font-bold text-slate-100">
+              {KM48_LABEL}
+            </div>
+            <div className="text-xs text-slate-400">Punto de confluencia</div>
+          </Popup>
+        </Marker>
 
-      {hasDynamicPolylines ? (
-        <DynamicPolylines polylines={polylines} incidents={incidents} />
-      ) : (
-        <StaticSegmentsFallback states={states} />
-      )}
+        {hasDynamicPolylines ? (
+          <DynamicPolylines
+            polylines={polylines}
+            incidents={incidents}
+            direction={direction}
+          />
+        ) : (
+          <StaticSegmentsFallback states={states} />
+        )}
 
-      {incidents
-        .filter(
-          (i) =>
-            i.active && (i.severity === "critico" || i.severity === "alto")
-        )
-        .map((incident) => (
-          <Marker
-            key={incident.id}
-            position={incident.coords}
-            icon={incidentIcon}
-          >
-            <Popup>
-              <div className="text-sm min-w-[200px]">
-                <p className="font-bold mb-1 text-slate-100">
-                  {INCIDENT_ICONS[incident.type]} {incident.title}
-                </p>
-                <p className="text-xs text-slate-300 mb-1">
-                  {incident.description}
-                </p>
-                <p className="text-xs text-slate-400">
-                  Fuente: {incident.source.toUpperCase()}
-                </p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-    </MapContainer>
+        {incidents
+          .filter(
+            (i) =>
+              i.active && (i.severity === "critico" || i.severity === "alto")
+          )
+          .map((incident) => (
+            <Marker
+              key={incident.id}
+              position={incident.coords}
+              icon={incidentIcon}
+            >
+              <Popup>
+                <div className="text-sm min-w-[200px]">
+                  <p className="font-bold mb-1 text-slate-100">
+                    {INCIDENT_ICONS[incident.type]} {incident.title}
+                  </p>
+                  <p className="text-xs text-slate-300 mb-1">
+                    {incident.description}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Fuente: {incident.source.toUpperCase()}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+      </MapContainer>
   );
 }
