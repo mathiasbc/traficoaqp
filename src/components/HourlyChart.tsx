@@ -10,20 +10,16 @@ import {
   Cell,
   ReferenceLine,
 } from "recharts";
-import type { HourlyPattern, RouteId } from "@/lib/types";
+import type { HourlyPattern } from "@/lib/types";
 
-import { BarChart3 } from "lucide-react";
-
-const SALIDA_COLOR = "#38bdf8";  // blue-400 — outbound
-const INGRESO_COLOR = "#fbbf24"; // amber-400 — inbound
+const SALIDA_COLOR = "#94a3b8";  // slate-400 — outbound (neutral)
+const INGRESO_COLOR = "#fbbf24"; // amber-400 — inbound (warm)
 
 interface Props {
-  patterns: HourlyPattern[];  // Pre-filtered for this route
-  routeId: RouteId;
+  patterns: HourlyPattern[];
   routeColor: string;
   routeName: string;
   currentHour: number;
-  isLive: boolean;
 }
 
 export default function HourlyChart({ patterns, routeColor, routeName, currentHour }: Props) {
@@ -54,8 +50,7 @@ export default function HourlyChart({ patterns, routeColor, routeName, currentHo
     <div className="rounded-xl sm:rounded-2xl p-3.5 sm:p-5 shadow-lg shadow-black/10 border border-slate-800/50 bg-slate-950/50">
       <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-center justify-between gap-2 mb-4">
         <div>
-          <h3 className="font-bold text-xs sm:text-sm flex items-center gap-1.5" style={{ color: routeColor }}>
-            <BarChart3 className="w-3.5 h-3.5" />
+          <h3 className="font-bold text-xs sm:text-sm" style={{ color: routeColor }}>
             Congestión {routeName} (día típico)
           </h3>
           <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">Multiplicador vs flujo libre</p>

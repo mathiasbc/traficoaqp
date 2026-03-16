@@ -18,9 +18,8 @@ import {
   KM48_COORDS,
   KM48_LABEL,
   AREQUIPA_CENTER,
-  UCHUMAYO_PATH,
-  CERRO_VERDE_PATH,
 } from "@/lib/roads";
+import { STATIC_PATHS, findUncoveredSegments, getClosedRouteIds } from "@/lib/map-utils";
 import {
   CONGESTION_COLORS,
   CONGESTION_LABELS,
@@ -33,35 +32,36 @@ interface Props {
   incidents: Incident[];
   polylines: RoutePolyline[];
   direction: Direction;
+  isLive: boolean;
 }
 
 const MAP_CENTER: [number, number] = [-16.47, -71.67];
 
 const SPEED_COLORS: Record<SpeedCategory, string> = {
-  NORMAL: "#10b981",
-  SLOW: "#f59e0b",
-  TRAFFIC_JAM: "#dc2626",
+  NORMAL: "#34d399",
+  SLOW: "#fbbf24",
+  TRAFFIC_JAM: "#ef4444",
 };
 
 const incidentIcon = L.divIcon({
-  html: `<div style="font-size:14px;text-align:center;line-height:1;background:#0f172a;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid #f43f5e;box-shadow:0 2px 8px rgba(244,63,94,0.5)">⚠️</div>`,
+  html: `<div style="width:12px;height:12px;border-radius:50%;background:#fb7185;border:2px solid #0f172a;box-shadow:0 0 0 2px #fb718566"></div>`,
   className: "",
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
 });
 
 const arequipaIcon = L.divIcon({
-  html: `<div style="font-size:16px;text-align:center;line-height:1;background:#0f172a;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid #3b82f6;box-shadow:0 2px 8px rgba(59,130,246,0.4)">🏛️</div>`,
+  html: `<div style="width:14px;height:14px;border-radius:50%;background:#94a3b8;border:2px solid #0f172a;box-shadow:0 0 0 2px #94a3b866"></div>`,
   className: "",
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
 });
 
 const km48Icon = L.divIcon({
-  html: `<div style="font-size:14px;text-align:center;line-height:1;background:#0f172a;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid #10b981;box-shadow:0 2px 8px rgba(16,185,129,0.4)">📍</div>`,
+  html: `<div style="width:14px;height:14px;border-radius:50%;background:#34d399;border:2px solid #0f172a;box-shadow:0 0 0 2px #34d39966"></div>`,
   className: "",
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
 });
 
 function pickWorstState(
@@ -190,63 +190,33 @@ function StaticSegmentsFallback({ states }: { states: TrafficState[] }) {
   );
 }
 
-const STATIC_PATHS: Record<RouteId, [number, number][]> = {
-  uchumayo: UCHUMAYO_PATH,
-  "cerro-verde": CERRO_VERDE_PATH,
-};
-
-// ~330m threshold in degrees for "same road" proximity
-const PROXIMITY_THRESHOLD_SQ = 0.003 * 0.003;
-
-function findUncoveredSegments(
-  staticPath: [number, number][],
-  googlePolyline: [number, number][]
-): [number, number][][] {
-  const result: [number, number][][] = [];
-  let current: [number, number][] = [];
-  let lastCoveredPoint: [number, number] | null = null;
-
-  for (const point of staticPath) {
-    let covered = false;
-    for (const gp of googlePolyline) {
-      const dlat = point[0] - gp[0];
-      const dlng = point[1] - gp[1];
-      if (dlat * dlat + dlng * dlng < PROXIMITY_THRESHOLD_SQ) {
-        covered = true;
-        break;
-      }
-    }
-
-    if (!covered) {
-      if (current.length === 0 && lastCoveredPoint) {
-        current.push(lastCoveredPoint);
-      }
-      current.push(point);
-    } else {
-      if (current.length >= 2) {
-        current.push(point);
-        result.push(current);
-      }
-      current = [];
-      lastCoveredPoint = point;
-    }
-  }
-
-  if (current.length >= 2) {
-    result.push(current);
-  }
-
-  return result;
+function worstCongestionColor(
+  states: TrafficState[],
+  routeId: RouteId,
+  direction: Direction
+): string {
+  const matching = states.filter(
+    (s) => s.segmentId.startsWith(routeId) && s.direction === direction
+  );
+  if (matching.length === 0) return ROUTE_COLORS[routeId];
+  const worst = matching.reduce((a, b) =>
+    a.congestionRatio >= b.congestionRatio ? a : b
+  );
+  return CONGESTION_COLORS[worst.congestionLevel];
 }
 
 function DynamicPolylines({
   polylines,
   incidents,
   direction,
+  states,
+  isLive,
 }: {
   polylines: RoutePolyline[];
   incidents: Incident[];
   direction: Direction;
+  states: TrafficState[];
+  isLive: boolean;
 }) {
   const speedSegments = useMemo(
     () => buildSpeedSegments(polylines),
@@ -254,12 +224,7 @@ function DynamicPolylines({
   );
 
   const closedRoadSegments = useMemo(() => {
-    const criticalRoutes = new Set<RouteId>();
-    for (const inc of incidents) {
-      if (inc.active && inc.severity === "critico" && inc.routeId) {
-        criticalRoutes.add(inc.routeId);
-      }
-    }
+    const criticalRoutes = getClosedRouteIds(incidents);
 
     const segments: { routeId: RouteId; positions: [number, number][] }[] = [];
     for (const routeId of criticalRoutes) {
@@ -303,21 +268,39 @@ function DynamicPolylines({
         );
       })}
 
-      {speedSegments
-        .filter((s) => s.direction === direction)
-        .map((seg, i) => (
-          <Polyline
-            key={`speed-${seg.routeId}-${seg.direction}-${i}`}
-            positions={seg.positions}
-            pathOptions={{
-              color: seg.color,
-              weight: 6,
-              opacity: 0.9,
-              lineJoin: "round",
-              lineCap: "round",
-            }}
-          />
-        ))}
+      {isLive
+        ? speedSegments
+            .filter((s) => s.direction === direction)
+            .map((seg, i) => (
+              <Polyline
+                key={`speed-${seg.routeId}-${seg.direction}-${i}`}
+                positions={seg.positions}
+                pathOptions={{
+                  color: seg.color,
+                  weight: 6,
+                  opacity: 0.9,
+                  lineJoin: "round",
+                  lineCap: "round",
+                }}
+              />
+            ))
+        : dirPolylines.map((rp) => {
+            const decoded = decode(rp.encodedPolyline, 5) as [number, number][];
+            const color = worstCongestionColor(states, rp.routeId, direction);
+            return (
+              <Polyline
+                key={`sim-${rp.routeId}-${direction}`}
+                positions={decoded}
+                pathOptions={{
+                  color,
+                  weight: 6,
+                  opacity: 0.9,
+                  lineJoin: "round",
+                  lineCap: "round",
+                }}
+              />
+            );
+          })}
 
       {closedRoadSegments.map((seg, i) => (
         <Polyline
@@ -342,6 +325,7 @@ export default function TrafficMapInner({
   incidents,
   polylines,
   direction,
+  isLive,
 }: Props) {
   const hasDynamicPolylines = polylines.length > 0;
 
@@ -359,6 +343,28 @@ export default function TrafficMapInner({
         />
 
         <Marker position={AREQUIPA_CENTER} icon={arequipaIcon}>
+          <Tooltip
+            permanent
+            direction="right"
+            offset={[8, 6]}
+            className="km48-label"
+          >
+            <span
+              style={{
+                background: "#0f172aCC",
+                color: "#94a3b8",
+                fontWeight: 600,
+                fontSize: "10px",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                border: "1px solid #334155",
+                letterSpacing: "0.5px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Variante
+            </span>
+          </Tooltip>
           <Popup>
             <div className="text-sm font-bold text-slate-100">Arequipa</div>
             <div className="text-xs text-slate-400">
@@ -376,13 +382,13 @@ export default function TrafficMapInner({
           >
             <span
               style={{
-                background: "#0f172a",
-                color: "#10b981",
-                fontWeight: 700,
-                fontSize: "11px",
+                background: "#0f172aCC",
+                color: "#94a3b8",
+                fontWeight: 600,
+                fontSize: "10px",
                 padding: "2px 6px",
                 borderRadius: "4px",
-                border: "1px solid #10b981",
+                border: "1px solid #334155",
                 letterSpacing: "0.5px",
                 whiteSpace: "nowrap",
               }}
@@ -403,6 +409,8 @@ export default function TrafficMapInner({
             polylines={polylines}
             incidents={incidents}
             direction={direction}
+            states={states}
+            isLive={isLive}
           />
         ) : (
           <StaticSegmentsFallback states={states} />

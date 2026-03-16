@@ -68,23 +68,6 @@ const CERRO_VERDE_WAYPOINTS: LatLng[] = [
   { latitude: -16.512236, longitude: -71.631102 },
 ];
 
-const SEGMENT_LABELS: Record<RouteId, string[]> = {
-  uchumayo: [
-    "Sachaca – Congata",
-    "Congata – Uchumayo",
-    "Uchumayo – Km 24",
-    "Km 24 – Km 36",
-    "Km 36 – Km 48",
-  ],
-  "cerro-verde": [
-    "Sachaca – Q. Honda",
-    "Q. Honda – Cerro Verde",
-    "Cerro Verde – Desvío",
-    "Desvío – Enlace Km 40",
-    "Enlace Km 40 – Km 48",
-  ],
-};
-
 // ── API Client ──
 
 function buildRequestBody(routeId: RouteId, direction: Direction) {
@@ -282,9 +265,7 @@ function parseResponse(
 
 // ── Public API ──
 
-export { SEGMENT_LABELS };
-
-export async function pollRoute(
+async function pollRoute(
   routeId: RouteId,
   direction: Direction
 ): Promise<PollResult> {

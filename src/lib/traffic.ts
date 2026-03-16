@@ -88,27 +88,12 @@ export function getTimeAgo(timestamp: string): string {
   return `hace ${diffD}d`;
 }
 
-export function getCurrentPeruTime(): Date {
-  const now = new Date();
-  return new Date(
-    now.toLocaleString("en-US", { timeZone: "America/Lima" })
-  );
-}
-
 export function formatPeruTime(date: Date): string {
   return date.toLocaleTimeString("es-PE", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
     timeZone: "America/Lima",
   });
 }
 
-export function formatPeruDate(date: Date): string {
-  return date.toLocaleDateString("es-PE", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "America/Lima",
-  });
-}

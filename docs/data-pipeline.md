@@ -364,8 +364,10 @@ FALLBACK: If fetch fails → generateTrafficState() (graceful degradation, no po
 - Live mode: `fetch('/api/traffic/current')` every 60 seconds → returns `{ states, polylines }`
 - Simulator mode: `fetch('/api/traffic/current?hour=14')` → returns `{ states, polylines }` (polylines are latest, states are hourly averages)
 - Patterns: `fetch('/api/traffic/patterns')` once on mount → feeds `HourlyChart`
-- Map: receives `polylines` array → renders Google's actual route colored by speed intervals
+- Map: receives `polylines` array → renders Google's actual route colored by speed intervals (live mode) or a single worst-congestion color per route (simulator mode)
 - Cards: receive `states` → 5 segments per route-direction (from equal-distance polyline splits)
+- Direction toggle: user switches between "Salida" and "Ingreso" — the map filters polylines by the selected direction
+- Incidents: `fetch('/api/incidents')` → real SUTRAN alerts rendered as markers on the map
 
 ### Graceful degradation
 

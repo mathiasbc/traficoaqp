@@ -26,7 +26,6 @@ interface TrafficData {
   states: TrafficState[];
   incidents: Incident[];
   polylines: RoutePolyline[];
-  allHourlyPatterns: HourlyPattern[];
   routeData: Record<RouteId, RouteTrafficData>;
   simulatedHour: number | null;
   setSimulatedHour: (hour: number | null) => void;
@@ -150,7 +149,6 @@ export function useTrafficData(): TrafficData {
     states,
     incidents,
     polylines,
-    allHourlyPatterns: hourlyPatterns,
     routeData,
     simulatedHour,
     setSimulatedHour,

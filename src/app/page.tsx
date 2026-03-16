@@ -12,7 +12,6 @@ import RouteSummaryCard from "@/components/RoadSummary";
 import HourlyChart from "@/components/HourlyChart";
 import TimeSimulator from "@/components/TimeSimulator";
 
-import { Map } from "lucide-react";
 
 function RouteSection({
   routeId,
@@ -31,29 +30,12 @@ function RouteSection({
   return (
     <section className="mt-5 mx-3 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-slate-900/50 border border-slate-800/80 shadow-2xl shadow-black/40">
       <div
-        className="rounded-xl sm:rounded-2xl overflow-hidden mb-4 shadow-xl shadow-black/20"
-        style={{ border: `1px solid ${color}33`, backgroundColor: '#0f172a' }}
+        className="mb-4 px-3.5 py-3 sm:px-5 sm:py-3.5"
+        style={{ borderLeft: `3px solid ${color}` }}
       >
-        <div
-          className="px-3.5 py-3 sm:px-5 sm:py-4 flex items-center gap-3"
-          style={{
-            background: `linear-gradient(90deg, ${color}22 0%, transparent 100%)`,
-            borderLeft: `4px solid ${color}`,
-          }}
-        >
-          <div
-            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-lg sm:text-xl flex-shrink-0"
-            style={{
-              backgroundColor: `${color}22`,
-              border: `2px solid ${color}55`,
-            }}
-          >
-            {config.icon}
-          </div>
-          <h2 className="font-bold text-base sm:text-lg tracking-tight" style={{ color }}>
-            {config.name}
-          </h2>
-        </div>
+        <h2 className="font-bold text-base sm:text-lg tracking-tight" style={{ color }}>
+          {config.name}
+        </h2>
       </div>
 
       <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3 mb-4">
@@ -63,11 +45,9 @@ function RouteSection({
 
       <HourlyChart
         patterns={routeData.hourlyPatterns}
-        routeId={routeId}
         routeColor={color}
         routeName={config.shortName}
         currentHour={currentHour}
-        isLive={isLive}
       />
     </section>
   );
@@ -97,8 +77,9 @@ export default function Home() {
         style={{ backgroundColor: "rgba(2, 6, 23, 0.85)" }}
       >
         <div className="flex items-center justify-between">
-          <h1 className="text-base sm:text-xl font-bold text-slate-50">
-            Corredor AQP ↔ KM 48
+          <h1 className="text-base sm:text-xl font-bold tracking-tight">
+            <span className="text-slate-400">Corredor</span>{" "}
+            <span className="text-slate-100">AQP · KM 48</span>
           </h1>
           <div className="text-right">
             <p className="text-sm sm:text-lg font-bold tabular-nums text-slate-50" suppressHydrationWarning>
@@ -122,19 +103,16 @@ export default function Home() {
         <IncidentBanner incidents={incidents} />
 
         <div className="flex items-center justify-between px-0.5">
-          <div className="flex items-center gap-2">
-            <Map className="w-4 h-4 text-slate-400" />
-            <h2 className="text-xs sm:text-sm font-bold text-slate-200">Estado de la Vía</h2>
-          </div>
-          <div className="flex rounded-xl overflow-hidden border border-slate-700/80 shadow-lg shadow-black/30">
+          <h2 className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider">Estado de la Vía</h2>
+          <div className="flex rounded-lg overflow-hidden border border-slate-700/60 bg-slate-900/50">
             {(["salida", "ingreso"] as Direction[]).map((d) => (
               <button
                 key={d}
                 onClick={() => setDirection(d)}
-                className={`px-5 py-2.5 text-sm font-bold tracking-wide transition-colors ${
+                className={`px-5 py-2.5 text-sm font-semibold tracking-wide transition-all duration-200 ${
                   d === direction
-                    ? "bg-blue-600 text-white shadow-inner"
-                    : "bg-slate-800 text-slate-400 hover:text-slate-200 active:bg-slate-700"
+                    ? "bg-slate-600 text-slate-50"
+                    : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
                 }`}
               >
                 {d === "salida" ? "Salida" : "Ingreso"}
@@ -143,7 +121,7 @@ export default function Home() {
           </div>
         </div>
         <div className="h-[45vh] min-h-[280px] rounded-xl sm:rounded-2xl overflow-hidden shadow-xl shadow-black/20 border border-slate-800/50">
-          <TrafficMap states={states} incidents={incidents} polylines={polylines} direction={direction} />
+          <TrafficMap states={states} incidents={incidents} polylines={polylines} direction={direction} isLive={isLive} />
         </div>
 
         <TimeSimulator
@@ -169,7 +147,7 @@ export default function Home() {
 
       <footer className="mt-8 px-3 pb-6 text-center">
         <p className="text-[10px] sm:text-xs text-slate-500">
-          Proyecto comunitario · mathiasbc@gmail.com · Arequipa, Perú
+          mathiasbc@gmail.com · Arequipa, Perú
         </p>
       </footer>
     </main>

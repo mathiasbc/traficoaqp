@@ -94,6 +94,9 @@ cp .env.example .env
 # Edit .env and paste your Google Maps API key
 nano .env
 
+# Run tests
+npm test
+
 # Build and test locally
 npm run build
 npm run start
@@ -270,7 +273,8 @@ tail -f /var/log/traficoaqp.error.log
 
 # Rebuild after code changes
 cd /path/to/trafico-aqp
-npm run build
+npm test           # Run tests first
+npm run build      # Then build
 # Then restart the service (unload + load above)
 ```
 

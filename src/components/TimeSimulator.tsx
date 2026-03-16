@@ -1,6 +1,6 @@
 "use client";
 
-import { Radio, Undo2 } from "lucide-react";
+import { Undo2 } from "lucide-react";
 
 interface Props {
   simulatedHour: number | null;
@@ -9,10 +9,10 @@ interface Props {
 }
 
 const PERIODS = [
-  { start: 0, end: 5, label: "Madrugada", icon: "🌙" },
-  { start: 6, end: 11, label: "Mañana", icon: "🌅" },
-  { start: 12, end: 17, label: "Tarde", icon: "☀️" },
-  { start: 18, end: 23, label: "Noche", icon: "🌆" },
+  { start: 0, end: 5, label: "Madrugada" },
+  { start: 6, end: 11, label: "Mañana" },
+  { start: 12, end: 17, label: "Tarde" },
+  { start: 18, end: 23, label: "Noche" },
 ] as const;
 
 function getTimePeriod(hour: number) {
@@ -46,8 +46,8 @@ export default function TimeSimulator({
               Volver a En Vivo
             </button>
           )}
-          <span className="text-[11px] text-slate-500">
-            {period.icon} {period.label}
+          <span className="text-[11px] text-slate-500 font-medium">
+            {period.label}
           </span>
         </div>
         <span className="text-xl font-bold tabular-nums text-white tracking-tight">

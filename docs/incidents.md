@@ -2,9 +2,11 @@
 
 How TráficoAQP detects, stores, and displays road incidents (closures, accidents, police, construction) on the Arequipa ↔ Km 48 corridor.
 
-## Why This Matters
+## Current Status
 
-The app currently uses hardcoded mock incidents. Real incidents — like the Puente Uchumayo bridge closure (active since Feb 2026) — are invisible to users. Without real incident data, the app gives **wrong information** on route viability.
+**SUTRAN scraping is implemented and active.** The app polls SUTRAN's GIS alert system every 5 minutes and displays real incidents on the map. Mock incidents have been fully removed.
+
+PROVIAS and COVISUR integrations are planned but not yet implemented (see roadmap sections below).
 
 ## Data Sources
 
@@ -55,7 +57,7 @@ The app currently uses hardcoded mock incidents. Real incidents — like the Pue
 - Lat: -16.55 to -16.38
 - Lng: -71.80 to -71.55
 
-### Source 2: PROVIAS Nacional — ArcGIS REST API (Secondary)
+### Source 2: PROVIAS Nacional — ArcGIS REST API (Planned)
 
 **What:** Peru's national road infrastructure authority. Operates a full ArcGIS server with queryable emergency layers.
 
@@ -111,7 +113,7 @@ GET https://giserver.proviasnac.gob.pe/arcgis/rest/services/GEOVIAL/SERV_TI_PVN_
 | COLAPSO DE PLATAFORMA | `cierre` |
 | DESBORDES DE RIOS | `clima` |
 
-### Source 3: COVISUR — Comunicados (Supplementary)
+### Source 3: COVISUR — Comunicados (Planned)
 
 **What:** The private concessionaire that directly operates the Arequipa–Km 48 highway.
 
@@ -263,26 +265,21 @@ Filter by route.
 
 ### Incident markers on map
 
-Currently `TrafficMapInner.tsx` renders incident markers from `MOCK_INCIDENTS`. Change to:
-
-```
-BEFORE: import { MOCK_INCIDENTS } from "@/lib/mock-data"  →  static array
-AFTER:  fetch('/api/incidents')  →  real incidents from SQLite
-```
-
-The `useTrafficData` hook already provides `activeIncidentCount` per route. Wire it to the real `/api/incidents` response count instead of the mock array length.
+`TrafficMapInner.tsx` renders incident markers from real SUTRAN data fetched via `/api/incidents`. Mock incidents have been fully removed.
 
 ### Incident badges on route cards
 
-`RoadSummary.tsx` shows an orange badge when `activeIncidentCount > 0`. This already works — just needs real data flowing in.
+`RoadSummary.tsx` shows an orange badge when `activeIncidentCount > 0`:
 
 - 0 incidents → no badge (clean route)
 - 1+ incidents → orange badge with count
 - Any `critico` severity → red badge + `IncidentBanner` at top of page
 
-### Incident icons
+### Closed road visualization
 
-Map `type` to emoji as before (already defined in `INCIDENT_ICONS` in `roads.ts`):
+When a `critico` incident is active on a route, the app compares the static road path against Google's returned polyline. Portions of the old road that Google bypasses are rendered as **dashed gray lines** on the map. See `docs/route-data-model.md` → "Closed Road Detection" for details.
+
+### Incident icons
 
 | Type | Icon |
 |------|------|
@@ -310,14 +307,14 @@ This covers both Vía Uchumayo and Vía Cerro Verde with margin.
 
 ## Files
 
-| File | Action | Purpose |
+| File | Status | Purpose |
 |------|--------|---------|
-| `src/lib/sutran-scraper.ts` | Create | SUTRAN PHP endpoint scraper + HTML parser |
-| `src/lib/provias-client.ts` | Create | PROVIAS ArcGIS REST client |
-| `src/lib/incident-matcher.ts` | Create | Coordinate → segment matching, dedup |
-| `src/lib/db.ts` | Modify | Add incidents table + query helpers |
-| `src/lib/scheduler.ts` | Modify | Add 30-min incident poll job |
-| `src/app/api/incidents/route.ts` | Create | GET endpoint for active incidents |
-| `src/hooks/useTrafficData.ts` | Modify | Fetch from /api/incidents |
-| `src/components/TrafficMapInner.tsx` | Modify | Render real incidents instead of mock |
-| `src/lib/mock-data.ts` | Modify | Remove MOCK_INCIDENTS (no longer needed) |
+| `src/lib/sutran-scraper.ts` | Implemented | SUTRAN PHP endpoint scraper + HTML parser |
+| `src/lib/incident-matcher.ts` | Implemented | Coordinate → segment matching |
+| `src/lib/map-utils.ts` | Implemented | Closed road detection (static path vs Google polyline) |
+| `src/lib/db.ts` | Implemented | Incidents table + query helpers |
+| `src/lib/scheduler.ts` | Implemented | 5-min incident poll job |
+| `src/app/api/incidents/route.ts` | Implemented | GET endpoint for active incidents |
+| `src/hooks/useTrafficData.ts` | Implemented | Fetches from /api/incidents |
+| `src/components/TrafficMapInner.tsx` | Implemented | Renders real incidents + dashed gray closed roads |
+| `src/lib/provias-client.ts` | Planned | PROVIAS ArcGIS REST client |

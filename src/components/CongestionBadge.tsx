@@ -22,15 +22,12 @@ export default function CongestionBadge({ level, size = "md" }: Props) {
         backgroundColor: CONGESTION_BG[level],
         color: CONGESTION_TEXT[level],
         borderWidth: 1,
-        borderColor: `${CONGESTION_COLORS[level]}66`,
+        borderColor: `${CONGESTION_COLORS[level]}33`,
       }}
     >
       <span
-        className="mr-1.5 inline-block h-2 w-2 rounded-full"
-        style={{
-          backgroundColor: CONGESTION_COLORS[level],
-          boxShadow: `0 0 6px ${CONGESTION_COLORS[level]}88`,
-        }}
+        className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full"
+        style={{ backgroundColor: CONGESTION_COLORS[level] }}
       />
       {CONGESTION_LABELS[level]}
     </span>

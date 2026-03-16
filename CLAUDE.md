@@ -41,9 +41,10 @@ trafico-aqp/
 │   │   ├── layout.tsx              # Root layout, font, Leaflet CSS
 │   │   ├── page.tsx                # Main page, orchestrates all sections
 │   │   ├── globals.css             # Global styles, Leaflet overrides
-│   │   └── api/traffic/
-│   │       ├── current/route.ts    # GET /api/traffic/current — live + simulated data
-│   │       └── patterns/route.ts   # GET /api/traffic/patterns — hourly averages
+│   │   └── api/
+│   │       ├── traffic/current/route.ts    # GET /api/traffic/current — live + simulated data
+│   │       ├── traffic/patterns/route.ts   # GET /api/traffic/patterns — hourly averages
+│   │       └── incidents/route.ts          # GET /api/incidents — active road incidents
 │   ├── components/                 # UI components (one purpose each)
 │   │   ├── TrafficMap.tsx          # Dynamic import wrapper (SSR disabled)
 │   │   ├── TrafficMapInner.tsx     # Leaflet map with polylines + markers
@@ -62,10 +63,14 @@ trafico-aqp/
 │   │   ├── traffic.ts              # Route summary calculation, formatting utils
 │   │   ├── db.ts                   # SQLite connection, schema, query helpers
 │   │   ├── google-traffic.ts       # Google Maps API client, response parser
+│   │   ├── sutran-scraper.ts       # SUTRAN GIS alert scraper
+│   │   ├── incident-matcher.ts     # Coordinate → route/segment matching
+│   │   ├── map-utils.ts            # Closed road detection (static vs Google path)
 │   │   ├── scheduler.ts            # node-cron jobs: 5-min poll + daily recomputation
 │   │   ├── mock-data.ts            # Mock traffic generation (permanent fallback)
 │   │   ├── uchumayo-path.ts        # Coordinate array for Vía Uchumayo
-│   │   └── cerro-verde-path.ts     # Coordinate array for Vía Cerro Verde
+│   │   ├── cerro-verde-path.ts     # Coordinate array for Vía Cerro Verde
+│   │   └── __tests__/              # Vitest test files
 │   └── instrumentation.ts          # Starts scheduler on server boot
 ├── data/
 │   ├── traffic.db                  # SQLite database (auto-created, gitignored)
@@ -73,9 +78,11 @@ trafico-aqp/
 ├── docs/
 │   ├── route-data-model.md         # How routes are defined and rendered
 │   ├── data-pipeline.md            # API polling, SQLite storage, accuracy plan
+│   ├── incidents.md                # Incident data sources, scraping, matching
 │   └── deployment.md               # Self-hosted MacBook + Cloudflare Tunnel setup
 ├── .env                            # GOOGLE_MAPS_API_KEY (gitignored)
 ├── .env.example                    # Template for environment variables
+├── vitest.config.ts                # Test configuration
 └── package.json
 ```
 
@@ -204,6 +211,11 @@ Edit `getCongestionLevel()` in `src/lib/colors.ts`. The thresholds cascade to al
 npm run dev --prefix trafico-aqp
 ```
 Port 3000. The scheduler starts automatically via the instrumentation hook.
+
+### Running tests
+```bash
+npm test --prefix trafico-aqp
+```
 
 ### Running production
 ```bash

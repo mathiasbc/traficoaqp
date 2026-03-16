@@ -1,36 +1,150 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TráficoAQP
 
-## Getting Started
+Real-time traffic monitoring for the Arequipa ↔ Km 48 (La Repartición) corridor in Peru. Covers two routes: **Vía Uchumayo** and **Vía Cerro Verde**.
 
-First, run the development server:
+Built for the Arequipa community. Free, open-source, no ads.
+
+## What it does
+
+- Polls Google Maps Routes API every 5 minutes for live speed data
+- Renders speed-colored polylines on the map (green/amber/red)
+- Shows 5-segment traffic cards per route and direction
+- Displays real road incidents from SUTRAN (closures, restrictions)
+- Detects closed road segments and renders them as dashed gray lines
+- Provides hourly traffic pattern charts from learned data
+- Time simulator to explore traffic at any hour of the day
+- Direction toggle (Salida / Ingreso) to view either travel direction
+
+## Tech stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript (strict) |
+| UI | React 19, Tailwind CSS v4 |
+| Map | Leaflet + react-leaflet |
+| Charts | Recharts |
+| Data source | Google Maps Routes API |
+| Incidents | SUTRAN GIS alerts |
+| Database | SQLite via better-sqlite3 |
+| Scheduler | node-cron (in-process) |
+| Testing | Vitest |
+
+## Prerequisites
+
+- Node.js 20+ (LTS recommended)
+- A Google Maps API key with **Routes API** enabled ([setup guide](docs/deployment.md#step-2--get-a-google-maps-api-key))
+
+## Quick start
 
 ```bash
+# Clone and install
+git clone <repo-url>
+cd trafico-aqp
+npm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env and add your Google Maps API key
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). The scheduler starts automatically and begins polling Google Maps for traffic data.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server (port 3000) |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm test` | Run test suite (Vitest) |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run lint` | Run ESLint |
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+trafico-aqp/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx                # Main page
+│   │   ├── layout.tsx              # Root layout
+│   │   ├── globals.css             # Global styles
+│   │   └── api/
+│   │       ├── traffic/current/    # Live + simulated traffic data
+│   │       ├── traffic/patterns/   # Hourly averages
+│   │       └── incidents/          # Active road incidents
+│   ├── components/                 # UI components
+│   ├── hooks/
+│   │   └── useTrafficData.ts       # Core data hook
+│   ├── lib/
+│   │   ├── types.ts                # All TypeScript interfaces
+│   │   ├── db.ts                   # SQLite schema and queries
+│   │   ├── google-traffic.ts       # Google Maps API client
+│   │   ├── sutran-scraper.ts       # SUTRAN incident scraper
+│   │   ├── incident-matcher.ts     # Coordinate → route/segment matching
+│   │   ├── map-utils.ts            # Closed road detection (static vs Google path)
+│   │   ├── scheduler.ts            # Cron jobs (5-min poll, daily recompute)
+│   │   ├── roads.ts                # Segment definitions, route configs
+│   │   ├── colors.ts               # Congestion colors and thresholds
+│   │   ├── traffic.ts              # Route summary calculation
+│   │   ├── mock-data.ts            # Fallback data when DB is empty
+│   │   ├── uchumayo-path.ts        # Static path (fallback)
+│   │   └── cerro-verde-path.ts     # Static path (fallback)
+│   └── instrumentation.ts          # Starts scheduler on boot
+├── data/
+│   └── traffic.db                  # SQLite database (auto-created, gitignored)
+├── docs/                           # Architecture documentation
+├── .env.example                    # Environment template
+├── vitest.config.ts                # Test configuration
+└── CLAUDE.md                       # AI coding guidelines
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Testing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Tests cover the critical bridge-recovery transition scenarios (what happens when Puente Uchumayo reopens):
 
-## Deploy on Vercel
+```bash
+npm test
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Key test areas:
+- **Closed road detection** — `findUncoveredSegments` correctly identifies which parts of the old road the Google detour bypasses
+- **Incident lifecycle** — SUTRAN clearing an incident removes the dashed gray overlay; Google restoring the original route aligns with the static path
+- **Transition safety** — all four combinations of SUTRAN/Google state changes are tested
+- **Incident matcher** — coordinate-to-route matching works correctly for both corridors
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## How it works
+
+1. **Every 5 minutes**, the scheduler polls Google Maps Routes API for 4 route-direction combinations (2 routes × 2 directions)
+2. Google returns an encoded polyline + speed intervals (NORMAL/SLOW/TRAFFIC_JAM) for each
+3. The polyline is split into 5 equal-distance segments for the summary cards
+4. Raw data is stored in SQLite; hourly averages are recomputed daily at 03:00
+5. The frontend fetches current data via API routes and renders speed-colored polylines on the map
+6. SUTRAN incidents are scraped every 5 minutes and displayed as markers on the map
+7. When a critical incident exists, the closed portion of the old road is shown as a dashed gray line (detected by comparing the static path against Google's detour polyline)
+
+When the API is unavailable, the app gracefully falls back to mock data generation.
+
+## Documentation
+
+| Document | Contents |
+|----------|----------|
+| [Data Pipeline](docs/data-pipeline.md) | Google Maps API integration, SQLite schema, polling schedule |
+| [Route Data Model](docs/route-data-model.md) | Coordinate system, segments, map rendering, how to add routes |
+| [Incidents](docs/incidents.md) | SUTRAN/PROVIAS data sources, scraping, segment matching |
+| [Deployment](docs/deployment.md) | Self-hosted MacBook + Cloudflare Tunnel setup |
+| [CLAUDE.md](CLAUDE.md) | AI coding guidelines and architecture rules |
+
+## Deployment
+
+Self-hosted on a MacBook in Arequipa via Cloudflare Tunnel. See [docs/deployment.md](docs/deployment.md) for the full setup guide.
+
+Total cost: ~$10/year (domain only). Google Maps free tier covers our API usage.
+
+## License
+
+Community project by mathiasbc@gmail.com — Arequipa, Perú.

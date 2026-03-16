@@ -22,6 +22,7 @@ db.ts                 — SQLite: snapshots, hourly averages, route polylines
 roads.ts              — Static segment definitions (fallback), route configs, shared constants
 uchumayo-path.ts      — Static coordinate array for Vía Uchumayo (fallback only)
 cerro-verde-path.ts   — Static coordinate array for Vía Cerro Verde (fallback only)
+map-utils.ts          — Closed road detection (compares static path vs Google polyline)
 colors.ts             — Congestion colors and thresholds
 ```
 
@@ -59,7 +60,7 @@ When API data is available, the 5 segments per route are derived by **equal-dist
 2. Split at 0%, 20%, 40%, 60%, 80%, 100% of total distance
 3. For each virtual segment, compute weighted congestion from overlapping speed intervals
 
-Segment IDs (`uchumayo-0` through `uchumayo-4`) represent the 1st through 5th equal-distance chunk. Labels are approximate geographic names defined in `SEGMENT_LABELS` in `google-traffic.ts`.
+Segment IDs (`uchumayo-0` through `uchumayo-4`) represent the 1st through 5th equal-distance chunk of whatever route Google returns.
 
 ### Static segments (fallback)
 
@@ -139,7 +140,7 @@ When `polylines` data is available from the API, each `speedReadingInterval` fro
 | `SLOW` | `#f59e0b` (amber) | Moderate congestion |
 | `TRAFFIC_JAM` | `#dc2626` (red) | Heavy congestion |
 
-A faint shadow polyline in the route's theme color is drawn underneath for route identity. Only the `salida` direction polyline is shown on the map to avoid visual clutter (both directions share the same physical road).
+A faint shadow polyline in the route's theme color is drawn underneath for route identity. A direction toggle (Salida / Ingreso) lets the user switch which direction's traffic data is displayed on the map — both directions share the same physical road, so only one is shown at a time.
 
 ### Fallback mode
 
@@ -153,6 +154,20 @@ When no polyline data is available, the map falls back to rendering static segme
 | `muy_alto` | `#f43f5e` (rose) | ratio ≤ 3.5 |
 | `colapsado` | `#dc2626` (red) | ratio > 3.5 |
 
+
+## Closed Road Detection
+
+When a critical incident is active on a route (e.g. Puente Uchumayo bridge closure), Google Maps reroutes traffic through a detour. The app detects and visualizes the closed road segment:
+
+1. `getClosedRouteIds()` identifies routes with active `critico` severity incidents
+2. For each closed route, `findUncoveredSegments()` compares the static path (from `uchumayo-path.ts` / `cerro-verde-path.ts`) against Google's returned polyline
+3. Points on the static path that are not within ~330m of any Google polyline point are considered "uncovered" — the road Google bypassed
+4. These uncovered segments render as **dashed gray lines** on the map, visually indicating the closed road
+5. Google's actual polyline (the detour) always renders with normal speed colors
+
+When the road reopens, Google's polyline naturally realigns with the static path, `findUncoveredSegments` returns empty, and the dashed gray overlay disappears automatically.
+
+**Implementation:** `src/lib/map-utils.ts` — exported functions: `findUncoveredSegments`, `getClosedRouteIds`, `STATIC_PATHS`.
 
 ## How to Add a New Route
 
@@ -176,33 +191,19 @@ const MY_ROUTE_WAYPOINTS: LatLng[] = [
 
 Add the waypoints to `buildRequestBody()`.
 
-### 3. Add segment labels in `google-traffic.ts`
-
-Add 5 geographic labels for the equal-distance segments:
-
-```typescript
-SEGMENT_LABELS["my-route"] = [
-  "Start – Waypoint A",
-  "Waypoint A – Waypoint B",
-  "Waypoint B – Midpoint",
-  "Midpoint – Waypoint C",
-  "Waypoint C – End",
-];
-```
-
-### 4. Create a fallback path file
+### 3. Create a fallback path file
 
 Generate an OSRM path file for fallback rendering (when API data is unavailable). This is optional but recommended.
 
-### 5. Define static fallback segments in `roads.ts`
+### 4. Define static fallback segments in `roads.ts`
 
 Add segment definitions and `ROUTE_CONFIG` entry for fallback rendering.
 
-### 6. Configure mock traffic in `mock-data.ts`
+### 5. Configure mock traffic in `mock-data.ts`
 
 Add entries to `SEGMENT_FACTORS`, `ROUTE_FACTORS`, and `ROUTE_PEAK_BOOST`.
 
-### 7. Recalculate the Google API budget
+### 6. Recalculate the Google API budget
 
 Each new route adds 2 calls/cycle (salida + ingreso) → +8,640 calls/month. At 5-min intervals, the absolute max is 4 routes before exceeding the $200/month free tier.
 
