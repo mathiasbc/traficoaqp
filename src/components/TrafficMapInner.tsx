@@ -194,21 +194,6 @@ function StaticSegmentsFallback({ states }: { states: TrafficState[] }) {
   );
 }
 
-function worstCongestionColor(
-  states: TrafficState[],
-  routeId: RouteId,
-  direction: Direction
-): string {
-  const matching = states.filter(
-    (s) => s.segmentId.startsWith(routeId) && s.direction === direction
-  );
-  if (matching.length === 0) return ROUTE_COLORS[routeId];
-  const worst = matching.reduce((a, b) =>
-    a.congestionRatio >= b.congestionRatio ? a : b
-  );
-  return CONGESTION_COLORS[worst.congestionLevel];
-}
-
 function DynamicPolylines({
   polylines,
   incidents,
@@ -290,25 +275,48 @@ function DynamicPolylines({
                 }}
               />
             ))
-        : dirPolylines.map((rp) => {
-            const decoded = decode(rp.encodedPolyline, 5) as [number, number][];
-            const color = hasSimulatedData
-              ? worstCongestionColor(states, rp.routeId, direction)
-              : NO_DATA_COLOR;
-            return (
-              <Polyline
-                key={`sim-${rp.routeId}-${direction}`}
-                positions={decoded}
-                pathOptions={{
-                  color,
-                  weight: 6,
-                  opacity: 0.9,
-                  lineJoin: "round",
-                  lineCap: "round",
-                }}
-              />
-            );
-          })}
+        : hasSimulatedData
+          ? (() => {
+              const stateMap = new Map<string, TrafficState>();
+              states.forEach((s) => stateMap.set(`${s.segmentId}:${s.direction}`, s));
+              const routeIds = new Set(dirPolylines.map((p) => p.routeId));
+              return ALL_SEGMENTS.filter((seg) => routeIds.has(seg.routeId)).map((segment) => {
+                const state = stateMap.get(`${segment.id}:${direction}`);
+                const color = state
+                  ? CONGESTION_COLORS[state.congestionLevel]
+                  : ROUTE_COLORS[segment.routeId];
+                const positions = segment.polyline.map(([lat, lng]) => [lat, lng] as [number, number]);
+                return (
+                  <Polyline
+                    key={`sim-seg-${segment.id}-${direction}`}
+                    positions={positions}
+                    pathOptions={{
+                      color,
+                      weight: 6,
+                      opacity: 0.9,
+                      lineJoin: "round",
+                      lineCap: "round",
+                    }}
+                  />
+                );
+              });
+            })()
+          : dirPolylines.map((rp) => {
+              const decoded = decode(rp.encodedPolyline, 5) as [number, number][];
+              return (
+                <Polyline
+                  key={`sim-${rp.routeId}-${direction}`}
+                  positions={decoded}
+                  pathOptions={{
+                    color: NO_DATA_COLOR,
+                    weight: 6,
+                    opacity: 0.9,
+                    lineJoin: "round",
+                    lineCap: "round",
+                  }}
+                />
+              );
+            })}
 
       {closedRoadSegments.map((seg, i) => (
         <Polyline
