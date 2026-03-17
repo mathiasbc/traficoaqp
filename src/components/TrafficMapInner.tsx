@@ -8,6 +8,7 @@ import {
   Popup,
   Marker,
   Tooltip,
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import { decode } from "@googlemaps/polyline-codec";
@@ -62,6 +63,48 @@ const km48Icon = L.divIcon({
   iconSize: [14, 14],
   iconAnchor: [7, 7],
 });
+
+function ZoomControls() {
+  const map = useMap();
+  return (
+    <div
+      style={{ position: "absolute", bottom: 32, right: 10, zIndex: 1000 }}
+      className="flex flex-col gap-1"
+    >
+      <button
+        onClick={() => map.zoomIn()}
+        aria-label="Acercar"
+        style={{
+          width: 32, height: 32,
+          background: "rgba(15,23,42,0.9)",
+          border: "1px solid #334155",
+          borderRadius: "6px 6px 0 0",
+          color: "#94a3b8",
+          fontSize: 20,
+          lineHeight: 1,
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >+</button>
+      <button
+        onClick={() => map.zoomOut()}
+        aria-label="Alejar"
+        style={{
+          width: 32, height: 32,
+          background: "rgba(15,23,42,0.9)",
+          border: "1px solid #334155",
+          borderTop: "none",
+          borderRadius: "0 0 6px 6px",
+          color: "#94a3b8",
+          fontSize: 20,
+          lineHeight: 1,
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >−</button>
+    </div>
+  );
+}
 
 function pickWorstState(
   a?: TrafficState,
@@ -296,8 +339,12 @@ export default function TrafficMapInner({
         zoom={11}
         className="h-full w-full rounded-xl"
         zoomControl={false}
+        dragging={false}
+        scrollWheelZoom={false}
+        doubleClickZoom={false}
         attributionControl={true}
       >
+        <ZoomControls />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -306,8 +353,8 @@ export default function TrafficMapInner({
         <Marker position={AREQUIPA_CENTER} icon={arequipaIcon}>
           <Tooltip
             permanent
-            direction="right"
-            offset={[8, 6]}
+            direction="left"
+            offset={[-8, -36]}
             className="km48-label"
           >
             <span
@@ -338,7 +385,7 @@ export default function TrafficMapInner({
           <Tooltip
             permanent
             direction="bottom"
-            offset={[0, 14]}
+            offset={[20, 10]}
             className="km48-label"
           >
             <span

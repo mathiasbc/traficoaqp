@@ -93,7 +93,7 @@ export function useTrafficData(): TrafficData {
 
   useEffect(() => {
     refreshData();
-    const interval = setInterval(refreshData, 60000);
+    const interval = setInterval(refreshData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [refreshData]);
 

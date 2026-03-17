@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTrafficData, type RouteTrafficData } from "@/hooks/useTrafficData";
-import { formatPeruTime, getTimeAgo, getPeruHour } from "@/lib/traffic";
+import { formatPeruTime, getPeruHour } from "@/lib/traffic";
 import { ROUTE_CONFIG } from "@/lib/roads";
 import { ROUTE_COLORS } from "@/lib/colors";
 import type { RouteId, Direction } from "@/lib/types";
@@ -69,16 +69,11 @@ export default function Home() {
             <span className="text-slate-400">Corredor</span>{" "}
             <span className="text-slate-100">AQP · KM 48</span>
           </h1>
-          <div className="text-right">
-            <p className="text-sm sm:text-lg font-bold tabular-nums text-slate-50" suppressHydrationWarning>
-              {formatPeruTime(now)}
+          <div className="text-right" suppressHydrationWarning>
+            <p className="text-xl sm:text-2xl font-bold tabular-nums text-slate-50">
+              {formatPeruTime(lastUpdated)}
             </p>
-            <p className="text-[10px] text-slate-400">
-              <span className="flex items-center gap-1.5 justify-end">
-                <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse bg-emerald-500" />
-                Actualizado {getTimeAgo(lastUpdated.toISOString())}
-              </span>
-            </p>
+            <p className="text-[10px] text-slate-400 text-right">Actualizado</p>
           </div>
         </div>
       </header>

@@ -79,6 +79,14 @@ body {
   display: block !important;
   border-right-color: #0f172a !important;
 }
+.km48-label.leaflet-tooltip-left::before {
+  display: block !important;
+  border-left-color: #0f172a !important;
+}
+.km48-label.leaflet-tooltip-top::before {
+  display: block !important;
+  border-top-color: #0f172a !important;
+}
 
 /* Range slider styling — dark theme */
 input[type="range"] {
