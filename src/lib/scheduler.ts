@@ -30,6 +30,7 @@ export function startScheduler(): void {
       const allSnapshots = results.flatMap((r) => r.snapshots);
       if (allSnapshots.length > 0) {
         insertSnapshots(allSnapshots);
+        recomputeAverages();
       }
       for (const r of results) {
         upsertRoutePolyline(
@@ -75,4 +76,12 @@ export function startScheduler(): void {
 
   // Run initial incident poll on startup
   pollIncidents().catch((err) => console.error("[incidents] Initial poll failed:", err));
+
+  // Initial recompute so congestion charts show data from existing snapshots
+  try {
+    recomputeAverages();
+    console.log("[scheduler] Initial recompute done");
+  } catch (err) {
+    console.error("[scheduler] Initial recompute failed:", err);
+  }
 }

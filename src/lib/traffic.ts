@@ -97,3 +97,10 @@ export function formatPeruTime(date: Date): string {
   });
 }
 
+/** Returns current hour (0–23) in Peru timezone. Use for charts/UI to match header time. */
+export function getPeruHour(date?: Date): number {
+  const d = date ?? new Date();
+  const peruStr = d.toLocaleString("en-US", { timeZone: "America/Lima" });
+  return new Date(peruStr).getHours();
+}
+

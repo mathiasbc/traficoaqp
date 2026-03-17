@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTrafficData, type RouteTrafficData } from "@/hooks/useTrafficData";
-import { formatPeruTime, getTimeAgo } from "@/lib/traffic";
+import { formatPeruTime, getTimeAgo, getPeruHour } from "@/lib/traffic";
 import { ROUTE_CONFIG } from "@/lib/roads";
 import { ROUTE_COLORS } from "@/lib/colors";
 import type { RouteId, Direction } from "@/lib/types";
@@ -63,11 +63,12 @@ export default function Home() {
     setSimulatedHour,
     lastUpdated,
     isLive,
+    hasSimulatedData,
   } = useTrafficData();
 
   const [direction, setDirection] = useState<Direction>("salida");
   const now = new Date();
-  const currentHour = simulatedHour ?? now.getHours();
+  const currentHour = simulatedHour ?? getPeruHour(now);
 
   return (
     <main className="min-h-screen max-w-2xl mx-auto pb-8">
@@ -121,13 +122,14 @@ export default function Home() {
           </div>
         </div>
         <div className="h-[45vh] min-h-[280px] rounded-xl sm:rounded-2xl overflow-hidden shadow-xl shadow-black/20 border border-slate-800/50">
-          <TrafficMap states={states} incidents={incidents} polylines={polylines} direction={direction} isLive={isLive} />
+          <TrafficMap states={states} incidents={incidents} polylines={polylines} direction={direction} isLive={isLive} hasSimulatedData={hasSimulatedData} />
         </div>
 
         <TimeSimulator
           simulatedHour={simulatedHour}
           onHourChange={setSimulatedHour}
           isLive={isLive}
+          hasSimulatedData={hasSimulatedData}
         />
       </div>
 

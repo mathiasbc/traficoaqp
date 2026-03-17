@@ -9,12 +9,13 @@ import {
   getPeruHour,
 } from "@/lib/db";
 import { ALL_SEGMENTS } from "@/lib/roads";
-import { generateTrafficState } from "@/lib/mock-data";
 import type { RouteId, RoutePolyline } from "@/lib/types";
 
 interface CurrentResponse {
   states: ReturnType<typeof snapshotToTrafficState>[];
   polylines: RoutePolyline[];
+  /** When true, states are from real scraped data. When false (simulator with no data), do not show traffic colors. */
+  dataSource: "live" | "historical" | "none";
 }
 
 export async function GET(request: NextRequest) {
@@ -26,10 +27,13 @@ export async function GET(request: NextRequest) {
     }
     return getLiveData();
   } catch (err) {
-    console.error("[api/traffic/current] DB error, falling back to mock:", err);
-    const hour = hourParam !== null ? parseInt(hourParam, 10) : undefined;
-    const states = generateTrafficState(hour);
-    return NextResponse.json({ states, polylines: [] } satisfies CurrentResponse);
+    console.error("[api/traffic/current] DB error:", err);
+    const polylines = getPolylines();
+    return NextResponse.json({
+      states: [],
+      polylines,
+      dataSource: "none",
+    } satisfies CurrentResponse);
   }
 }
 
@@ -47,7 +51,11 @@ function getLiveData() {
 
   if (snapshots.length > 0) {
     const states = snapshots.map(snapshotToTrafficState);
-    return NextResponse.json({ states, polylines } satisfies CurrentResponse);
+    return NextResponse.json({
+      states,
+      polylines,
+      dataSource: "live",
+    } satisfies CurrentResponse);
   }
 
   const hour = getPeruHour();
@@ -61,11 +69,18 @@ function getLiveData() {
       const routeId = avg.segment_id.split("-").slice(0, -1).join("-") as RouteId;
       return averageToTrafficState(avg, routeId, seg?.baseMinutes ?? 10);
     });
-    return NextResponse.json({ states, polylines } satisfies CurrentResponse);
+    return NextResponse.json({
+      states,
+      polylines,
+      dataSource: "historical",
+    } satisfies CurrentResponse);
   }
 
-  const states = generateTrafficState();
-  return NextResponse.json({ states, polylines } satisfies CurrentResponse);
+  return NextResponse.json({
+    states: [],
+    polylines,
+    dataSource: "none",
+  } satisfies CurrentResponse);
 }
 
 function getSimulatedData(hour: number) {
@@ -80,9 +95,17 @@ function getSimulatedData(hour: number) {
       const routeId = avg.segment_id.split("-").slice(0, -1).join("-") as RouteId;
       return averageToTrafficState(avg, routeId, seg?.baseMinutes ?? 10);
     });
-    return NextResponse.json({ states, polylines } satisfies CurrentResponse);
+    return NextResponse.json({
+      states,
+      polylines,
+      dataSource: "historical",
+    } satisfies CurrentResponse);
   }
 
-  const states = generateTrafficState(hour);
-  return NextResponse.json({ states, polylines } satisfies CurrentResponse);
+  // No real data for this hour — do not show fake traffic. Map will display "no data" styling.
+  return NextResponse.json({
+    states: [],
+    polylines,
+    dataSource: "none",
+  } satisfies CurrentResponse);
 }

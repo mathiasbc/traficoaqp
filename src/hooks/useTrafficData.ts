@@ -10,7 +10,6 @@ import type {
   Direction,
   RoutePolyline,
 } from "@/lib/types";
-import { generateTrafficState, generateHourlyPatterns } from "@/lib/mock-data";
 import { calculateRouteSummary } from "@/lib/traffic";
 
 const ROUTE_IDS: RouteId[] = ["uchumayo", "cerro-verde"];
@@ -31,11 +30,14 @@ interface TrafficData {
   setSimulatedHour: (hour: number | null) => void;
   lastUpdated: Date;
   isLive: boolean;
+  /** When false in simulator mode, no real data for selected hour — show "no data" styling */
+  hasSimulatedData: boolean;
 }
 
 interface CurrentApiResponse {
   states: TrafficState[];
   polylines: RoutePolyline[];
+  dataSource?: "live" | "historical" | "none";
 }
 
 async function fetchTrafficCurrent(
@@ -69,6 +71,7 @@ export function useTrafficData(): TrafficData {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [hourlyPatterns, setHourlyPatterns] = useState<HourlyPattern[]>([]);
+  const [hasSimulatedData, setHasSimulatedData] = useState(true);
   const initDone = useRef(false);
 
   useEffect(() => {
@@ -77,7 +80,7 @@ export function useTrafficData(): TrafficData {
 
     fetchPatterns()
       .then(setHourlyPatterns)
-      .catch(() => setHourlyPatterns(generateHourlyPatterns()));
+      .catch(() => setHourlyPatterns([]));
 
     fetchIncidents().then(setIncidents).catch(() => {});
   }, []);
@@ -88,10 +91,12 @@ export function useTrafficData(): TrafficData {
       const data = await fetchTrafficCurrent(hour);
       setStates(data.states);
       setPolylines(data.polylines);
+      setHasSimulatedData(data.dataSource !== "none");
       setLastUpdated(new Date());
     } catch {
-      const hour = simulatedHour ?? undefined;
-      setStates(generateTrafficState(hour));
+      setStates([]);
+      setPolylines([]);
+      setHasSimulatedData(false);
       setLastUpdated(new Date());
     }
   }, [simulatedHour]);
@@ -154,5 +159,6 @@ export function useTrafficData(): TrafficData {
     setSimulatedHour,
     lastUpdated,
     isLive: simulatedHour === null,
+    hasSimulatedData,
   };
 }

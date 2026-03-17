@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getAllHourlyAverages, averageToHourlyPattern } from "@/lib/db";
-import { generateHourlyPatterns } from "@/lib/mock-data";
 
 export async function GET() {
   try {
@@ -11,9 +10,9 @@ export async function GET() {
       return NextResponse.json(patterns);
     }
 
-    return NextResponse.json(generateHourlyPatterns());
+    return NextResponse.json([]);
   } catch (err) {
-    console.error("[api/traffic/patterns] DB error, falling back to mock:", err);
-    return NextResponse.json(generateHourlyPatterns());
+    console.error("[api/traffic/patterns] DB error:", err);
+    return NextResponse.json([]);
   }
 }

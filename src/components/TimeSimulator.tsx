@@ -1,11 +1,13 @@
 "use client";
 
 import { Undo2 } from "lucide-react";
+import { getPeruHour } from "@/lib/traffic";
 
 interface Props {
   simulatedHour: number | null;
   onHourChange: (hour: number | null) => void;
   isLive: boolean;
+  hasSimulatedData?: boolean;
 }
 
 const PERIODS = [
@@ -23,8 +25,9 @@ export default function TimeSimulator({
   simulatedHour,
   onHourChange,
   isLive,
+  hasSimulatedData = true,
 }: Props) {
-  const currentHour = new Date().getHours();
+  const currentHour = getPeruHour();
   const displayHour = simulatedHour ?? currentHour;
   const period = getTimePeriod(displayHour);
 
@@ -82,11 +85,15 @@ export default function TimeSimulator({
         </div>
       </div>
 
-      {isLive && (
+      {isLive ? (
         <p className="text-[10px] text-slate-600 text-center mt-1.5">
           Desliza para simular otra hora del día
         </p>
-      )}
+      ) : !hasSimulatedData ? (
+        <p className="text-[10px] text-amber-500/90 text-center mt-1.5">
+          Sin datos para esta hora — solo mostramos datos reales
+        </p>
+      ) : null}
     </div>
   );
 }

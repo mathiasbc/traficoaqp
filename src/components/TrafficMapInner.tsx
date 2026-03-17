@@ -33,6 +33,7 @@ interface Props {
   polylines: RoutePolyline[];
   direction: Direction;
   isLive: boolean;
+  hasSimulatedData?: boolean;
 }
 
 const MAP_CENTER: [number, number] = [-16.47, -71.67];
@@ -42,6 +43,9 @@ const SPEED_COLORS: Record<SpeedCategory, string> = {
   SLOW: "#fbbf24",
   TRAFFIC_JAM: "#ef4444",
 };
+
+/** Shown when simulator selects an hour with no scraped data */
+const NO_DATA_COLOR = "#64748b";
 
 const incidentIcon = L.divIcon({
   html: `<div style="width:12px;height:12px;border-radius:50%;background:#fb7185;border:2px solid #0f172a;box-shadow:0 0 0 2px #fb718566"></div>`,
@@ -211,12 +215,14 @@ function DynamicPolylines({
   direction,
   states,
   isLive,
+  hasSimulatedData,
 }: {
   polylines: RoutePolyline[];
   incidents: Incident[];
   direction: Direction;
   states: TrafficState[];
   isLive: boolean;
+  hasSimulatedData: boolean;
 }) {
   const speedSegments = useMemo(
     () => buildSpeedSegments(polylines),
@@ -286,7 +292,9 @@ function DynamicPolylines({
             ))
         : dirPolylines.map((rp) => {
             const decoded = decode(rp.encodedPolyline, 5) as [number, number][];
-            const color = worstCongestionColor(states, rp.routeId, direction);
+            const color = hasSimulatedData
+              ? worstCongestionColor(states, rp.routeId, direction)
+              : NO_DATA_COLOR;
             return (
               <Polyline
                 key={`sim-${rp.routeId}-${direction}`}
@@ -326,6 +334,7 @@ export default function TrafficMapInner({
   polylines,
   direction,
   isLive,
+  hasSimulatedData = true,
 }: Props) {
   const hasDynamicPolylines = polylines.length > 0;
 
@@ -411,6 +420,7 @@ export default function TrafficMapInner({
             direction={direction}
             states={states}
             isLive={isLive}
+            hasSimulatedData={hasSimulatedData}
           />
         ) : (
           <StaticSegmentsFallback states={states} />
