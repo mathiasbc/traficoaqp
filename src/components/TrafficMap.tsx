@@ -20,10 +20,8 @@ interface Props {
   incidents: Incident[];
   polylines: RoutePolyline[];
   direction: Direction;
-  isLive: boolean;
-  hasSimulatedData?: boolean;
 }
 
-export default function TrafficMap({ states, incidents, polylines, direction, isLive, hasSimulatedData = true }: Props) {
-  return <TrafficMapInner states={states} incidents={incidents} polylines={polylines} direction={direction} isLive={isLive} hasSimulatedData={hasSimulatedData} />;
+export default function TrafficMap({ states, incidents, polylines, direction }: Props) {
+  return <TrafficMapInner states={states} incidents={incidents} polylines={polylines} direction={direction} />;
 }

@@ -26,12 +26,7 @@ interface TrafficData {
   incidents: Incident[];
   polylines: RoutePolyline[];
   routeData: Record<RouteId, RouteTrafficData>;
-  simulatedHour: number | null;
-  setSimulatedHour: (hour: number | null) => void;
   lastUpdated: Date;
-  isLive: boolean;
-  /** When false in simulator mode, no real data for selected hour — show "no data" styling */
-  hasSimulatedData: boolean;
 }
 
 interface CurrentApiResponse {
@@ -65,13 +60,11 @@ async function fetchIncidents(): Promise<Incident[]> {
 }
 
 export function useTrafficData(): TrafficData {
-  const [simulatedHour, setSimulatedHour] = useState<number | null>(null);
   const [states, setStates] = useState<TrafficState[]>([]);
   const [polylines, setPolylines] = useState<RoutePolyline[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [hourlyPatterns, setHourlyPatterns] = useState<HourlyPattern[]>([]);
-  const [hasSimulatedData, setHasSimulatedData] = useState(true);
   const initDone = useRef(false);
 
   useEffect(() => {
@@ -87,29 +80,22 @@ export function useTrafficData(): TrafficData {
 
   const refreshData = useCallback(async () => {
     try {
-      const hour = simulatedHour ?? undefined;
-      const data = await fetchTrafficCurrent(hour);
+      const data = await fetchTrafficCurrent();
       setStates(data.states);
       setPolylines(data.polylines);
-      setHasSimulatedData(data.dataSource !== "none");
       setLastUpdated(new Date());
     } catch {
       setStates([]);
       setPolylines([]);
-      setHasSimulatedData(false);
       setLastUpdated(new Date());
     }
-  }, [simulatedHour]);
+  }, []);
 
   useEffect(() => {
     refreshData();
-  }, [refreshData]);
-
-  useEffect(() => {
-    if (simulatedHour !== null) return;
     const interval = setInterval(refreshData, 60000);
     return () => clearInterval(interval);
-  }, [simulatedHour, refreshData]);
+  }, [refreshData]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -155,10 +141,6 @@ export function useTrafficData(): TrafficData {
     incidents,
     polylines,
     routeData,
-    simulatedHour,
-    setSimulatedHour,
     lastUpdated,
-    isLive: simulatedHour === null,
-    hasSimulatedData,
   };
 }

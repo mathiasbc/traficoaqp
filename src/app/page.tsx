@@ -10,19 +10,16 @@ import TrafficMap from "@/components/TrafficMap";
 import IncidentBanner from "@/components/IncidentBanner";
 import RouteSummaryCard from "@/components/RoadSummary";
 import HourlyChart from "@/components/HourlyChart";
-import TimeSimulator from "@/components/TimeSimulator";
 
 
 function RouteSection({
   routeId,
   routeData,
   currentHour,
-  isLive,
 }: {
   routeId: RouteId;
   routeData: RouteTrafficData;
   currentHour: number;
-  isLive: boolean;
 }) {
   const config = ROUTE_CONFIG[routeId];
   const color = ROUTE_COLORS[routeId];
@@ -54,21 +51,11 @@ function RouteSection({
 }
 
 export default function Home() {
-  const {
-    states,
-    incidents,
-    polylines,
-    routeData,
-    simulatedHour,
-    setSimulatedHour,
-    lastUpdated,
-    isLive,
-    hasSimulatedData,
-  } = useTrafficData();
+  const { states, incidents, polylines, routeData, lastUpdated } = useTrafficData();
 
   const [direction, setDirection] = useState<Direction>("salida");
   const now = new Date();
-  const currentHour = simulatedHour ?? getPeruHour(now);
+  const currentHour = getPeruHour(now);
 
   return (
     <main className="min-h-screen max-w-2xl mx-auto pb-8">
@@ -87,14 +74,10 @@ export default function Home() {
               {formatPeruTime(now)}
             </p>
             <p className="text-[10px] text-slate-400">
-              {isLive ? (
-                <span className="flex items-center gap-1.5 justify-end">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse bg-emerald-500" />
-                  Actualizado {getTimeAgo(lastUpdated.toISOString())}
-                </span>
-              ) : (
-                `Simulando ${String(currentHour).padStart(2, "0")}:00`
-              )}
+              <span className="flex items-center gap-1.5 justify-end">
+                <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse bg-emerald-500" />
+                Actualizado {getTimeAgo(lastUpdated.toISOString())}
+              </span>
             </p>
           </div>
         </div>
@@ -122,29 +105,20 @@ export default function Home() {
           </div>
         </div>
         <div className="h-[45vh] min-h-[280px] rounded-xl sm:rounded-2xl overflow-hidden shadow-xl shadow-black/20 border border-slate-800/50">
-          <TrafficMap states={states} incidents={incidents} polylines={polylines} direction={direction} isLive={isLive} hasSimulatedData={hasSimulatedData} />
+          <TrafficMap states={states} incidents={incidents} polylines={polylines} direction={direction} />
         </div>
-
-        <TimeSimulator
-          simulatedHour={simulatedHour}
-          onHourChange={setSimulatedHour}
-          isLive={isLive}
-          hasSimulatedData={hasSimulatedData}
-        />
       </div>
 
       <RouteSection
         routeId="uchumayo"
         routeData={routeData.uchumayo}
         currentHour={currentHour}
-        isLive={isLive}
       />
 
       <RouteSection
         routeId="cerro-verde"
         routeData={routeData["cerro-verde"]}
         currentHour={currentHour}
-        isLive={isLive}
       />
 
       <footer className="mt-8 px-3 pb-6 text-center">

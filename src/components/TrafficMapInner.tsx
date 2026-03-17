@@ -32,8 +32,6 @@ interface Props {
   incidents: Incident[];
   polylines: RoutePolyline[];
   direction: Direction;
-  isLive: boolean;
-  hasSimulatedData?: boolean;
 }
 
 const MAP_CENTER: [number, number] = [-16.47, -71.67];
@@ -43,9 +41,6 @@ const SPEED_COLORS: Record<SpeedCategory, string> = {
   SLOW: "#fbbf24",
   TRAFFIC_JAM: "#ef4444",
 };
-
-/** Shown when simulator selects an hour with no scraped data */
-const NO_DATA_COLOR = "#64748b";
 
 const incidentIcon = L.divIcon({
   html: `<div style="width:12px;height:12px;border-radius:50%;background:#fb7185;border:2px solid #0f172a;box-shadow:0 0 0 2px #fb718566"></div>`,
@@ -198,16 +193,10 @@ function DynamicPolylines({
   polylines,
   incidents,
   direction,
-  states,
-  isLive,
-  hasSimulatedData,
 }: {
   polylines: RoutePolyline[];
   incidents: Incident[];
   direction: Direction;
-  states: TrafficState[];
-  isLive: boolean;
-  hasSimulatedData: boolean;
 }) {
   const speedSegments = useMemo(
     () => buildSpeedSegments(polylines),
@@ -259,64 +248,21 @@ function DynamicPolylines({
         );
       })}
 
-      {isLive
-        ? speedSegments
-            .filter((s) => s.direction === direction)
-            .map((seg, i) => (
-              <Polyline
-                key={`speed-${seg.routeId}-${seg.direction}-${i}`}
-                positions={seg.positions}
-                pathOptions={{
-                  color: seg.color,
-                  weight: 6,
-                  opacity: 0.9,
-                  lineJoin: "round",
-                  lineCap: "round",
-                }}
-              />
-            ))
-        : hasSimulatedData
-          ? (() => {
-              const stateMap = new Map<string, TrafficState>();
-              states.forEach((s) => stateMap.set(`${s.segmentId}:${s.direction}`, s));
-              const routeIds = new Set(dirPolylines.map((p) => p.routeId));
-              return ALL_SEGMENTS.filter((seg) => routeIds.has(seg.routeId)).map((segment) => {
-                const state = stateMap.get(`${segment.id}:${direction}`);
-                const color = state
-                  ? CONGESTION_COLORS[state.congestionLevel]
-                  : ROUTE_COLORS[segment.routeId];
-                const positions = segment.polyline.map(([lat, lng]) => [lat, lng] as [number, number]);
-                return (
-                  <Polyline
-                    key={`sim-seg-${segment.id}-${direction}`}
-                    positions={positions}
-                    pathOptions={{
-                      color,
-                      weight: 6,
-                      opacity: 0.9,
-                      lineJoin: "round",
-                      lineCap: "round",
-                    }}
-                  />
-                );
-              });
-            })()
-          : dirPolylines.map((rp) => {
-              const decoded = decode(rp.encodedPolyline, 5) as [number, number][];
-              return (
-                <Polyline
-                  key={`sim-${rp.routeId}-${direction}`}
-                  positions={decoded}
-                  pathOptions={{
-                    color: NO_DATA_COLOR,
-                    weight: 6,
-                    opacity: 0.9,
-                    lineJoin: "round",
-                    lineCap: "round",
-                  }}
-                />
-              );
-            })}
+      {speedSegments
+        .filter((s) => s.direction === direction)
+        .map((seg, i) => (
+          <Polyline
+            key={`speed-${seg.routeId}-${seg.direction}-${i}`}
+            positions={seg.positions}
+            pathOptions={{
+              color: seg.color,
+              weight: 6,
+              opacity: 0.9,
+              lineJoin: "round",
+              lineCap: "round",
+            }}
+          />
+        ))}
 
       {closedRoadSegments.map((seg, i) => (
         <Polyline
@@ -341,8 +287,6 @@ export default function TrafficMapInner({
   incidents,
   polylines,
   direction,
-  isLive,
-  hasSimulatedData = true,
 }: Props) {
   const hasDynamicPolylines = polylines.length > 0;
 
@@ -426,9 +370,6 @@ export default function TrafficMapInner({
             polylines={polylines}
             incidents={incidents}
             direction={direction}
-            states={states}
-            isLive={isLive}
-            hasSimulatedData={hasSimulatedData}
           />
         ) : (
           <StaticSegmentsFallback states={states} />
