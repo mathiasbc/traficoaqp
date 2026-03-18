@@ -221,16 +221,36 @@ function parseResponse(
   }
   boundaryIndices.push(polyline.length - 1);
 
-  const snapshots: SnapshotRow[] = [];
+  // First pass: compute each segment's congestion ratio and distance
+  const segmentInfo: Array<{
+    segStartIdx: number;
+    segEndIdx: number;
+    ratio: number;
+    segDistM: number;
+  }> = [];
+
   for (let i = 0; i < NUM_SEGMENTS; i++) {
     const segStartIdx = boundaryIndices[i];
     const segEndIdx = boundaryIndices[i + 1];
-
     const ratio = computeSegmentRatio(segStartIdx, segEndIdx, intervals);
-    const segDistM =
-      cumDists[segEndIdx] - cumDists[segStartIdx];
-    const segFraction = segDistM / totalPolylineDist;
-    const estimatedMinutes = (totalDurationSec * segFraction) / 60;
+    const segDistM = cumDists[segEndIdx] - cumDists[segStartIdx];
+    segmentInfo.push({ segStartIdx, segEndIdx, ratio, segDistM });
+  }
+
+  // Distribute total travel time weighted by distance × congestion ratio.
+  // A jammed segment covering 20% of distance with ratio 3.0 gets 3× more
+  // time than a free-flow segment of the same length with ratio 1.0.
+  const weightedSum = segmentInfo.reduce(
+    (sum, s) => sum + s.segDistM * s.ratio,
+    0
+  );
+
+  const snapshots: SnapshotRow[] = [];
+  for (let i = 0; i < NUM_SEGMENTS; i++) {
+    const { segStartIdx, segEndIdx, ratio, segDistM } = segmentInfo[i];
+    const timeWeight =
+      weightedSum > 0 ? (segDistM * ratio) / weightedSum : 1 / NUM_SEGMENTS;
+    const estimatedMinutes = (totalDurationSec * timeWeight) / 60;
     const freeFlowMinutes = estimatedMinutes / ratio;
     const segDistKm = segDistM / 1000;
     const freeFlowSpeed =

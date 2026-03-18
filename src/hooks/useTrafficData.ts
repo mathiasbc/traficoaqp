@@ -21,12 +21,15 @@ export interface RouteTrafficData {
   hourlyPatterns: HourlyPattern[];
 }
 
+export type DataSource = "live" | "historical" | "none";
+
 interface TrafficData {
   states: TrafficState[];
   incidents: Incident[];
   polylines: RoutePolyline[];
   routeData: Record<RouteId, RouteTrafficData>;
   lastUpdated: Date;
+  dataSource: DataSource;
 }
 
 interface CurrentApiResponse {
@@ -64,6 +67,7 @@ export function useTrafficData(): TrafficData {
   const [polylines, setPolylines] = useState<RoutePolyline[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [dataSource, setDataSource] = useState<DataSource>("none");
   const [hourlyPatterns, setHourlyPatterns] = useState<HourlyPattern[]>([]);
   const initDone = useRef(false);
 
@@ -83,10 +87,12 @@ export function useTrafficData(): TrafficData {
       const data = await fetchTrafficCurrent();
       setStates(data.states);
       setPolylines(data.polylines);
+      setDataSource(data.dataSource ?? "none");
       setLastUpdated(new Date());
     } catch {
       setStates([]);
       setPolylines([]);
+      setDataSource("none");
       setLastUpdated(new Date());
     }
   }, []);
@@ -142,5 +148,6 @@ export function useTrafficData(): TrafficData {
     polylines,
     routeData,
     lastUpdated,
+    dataSource,
   };
 }

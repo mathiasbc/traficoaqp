@@ -51,7 +51,7 @@ function RouteSection({
 }
 
 export default function Home() {
-  const { states, incidents, polylines, routeData, lastUpdated } = useTrafficData();
+  const { states, incidents, polylines, routeData, lastUpdated, dataSource } = useTrafficData();
 
   const [direction, setDirection] = useState<Direction>("salida");
   const now = new Date();
@@ -73,7 +73,13 @@ export default function Home() {
             <p className="text-xl sm:text-2xl font-bold tabular-nums text-slate-50">
               {formatPeruTime(lastUpdated)}
             </p>
-            <p className="text-[10px] text-slate-400 text-right">Actualizado</p>
+            <p className="text-[10px] text-slate-400 text-right">
+              {dataSource === "live"
+                ? "En vivo"
+                : dataSource === "historical"
+                ? "Promedio histórico"
+                : "Sin datos"}
+            </p>
           </div>
         </div>
       </header>
