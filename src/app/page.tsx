@@ -6,10 +6,12 @@ import { formatPeruTime, getPeruHour } from "@/lib/traffic";
 import { ROUTE_CONFIG } from "@/lib/roads";
 import { ROUTE_COLORS } from "@/lib/colors";
 import type { RouteId, Direction } from "@/lib/types";
+import { AREQUIPA_CENTER, KM48_COORDS } from "@/lib/roads";
 import TrafficMap from "@/components/TrafficMap";
 import IncidentBanner from "@/components/IncidentBanner";
 import RouteSummaryCard from "@/components/RoadSummary";
 import HourlyChart from "@/components/HourlyChart";
+import GoogleMapsButton from "@/components/GoogleMapsButton";
 
 
 function RouteSection({
@@ -87,22 +89,29 @@ export default function Home() {
       <div className="px-3 sm:px-4 space-y-3 mt-3">
         <IncidentBanner incidents={incidents} />
 
-        <div className="flex items-center justify-between px-0.5">
-          <h2 className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider">Estado de la Vía</h2>
-          <div className="flex rounded-lg overflow-hidden border border-slate-700/60 bg-slate-900/50">
-            {(["salida", "ingreso"] as Direction[]).map((d) => (
-              <button
-                key={d}
-                onClick={() => setDirection(d)}
-                className={`px-5 py-2.5 text-sm font-semibold tracking-wide transition-all duration-200 ${
-                  d === direction
-                    ? "bg-slate-600 text-slate-50"
-                    : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
-                }`}
-              >
-                {d === "salida" ? "Salida" : "Ingreso"}
-              </button>
-            ))}
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider shrink-0">Estado de la Vía</h2>
+          <div className="flex items-center gap-2">
+            <GoogleMapsButton
+              destination={direction === "salida" ? KM48_COORDS : AREQUIPA_CENTER}
+              label={direction === "salida" ? "Ir a Km 48" : "Ir a Arequipa"}
+              shortLabel={direction === "salida" ? "a Km48" : "a AQP"}
+            />
+            <div className="flex rounded-lg overflow-hidden border border-slate-700/60 bg-slate-900/50">
+              {(["salida", "ingreso"] as Direction[]).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDirection(d)}
+                  className={`px-2.5 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold tracking-wide transition-all duration-200 ${
+                    d === direction
+                      ? "bg-slate-600 text-slate-50"
+                      : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
+                  }`}
+                >
+                  {d === "salida" ? "Salida" : "Ingreso"}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         <div className="h-[45vh] min-h-[280px] rounded-xl sm:rounded-2xl overflow-hidden shadow-xl shadow-black/20 border border-slate-800/50">
