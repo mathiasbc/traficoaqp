@@ -25,7 +25,7 @@ You are a **senior software engineer** responsible for:
 | Map | Leaflet + react-leaflet |
 | Charts | Recharts |
 | Icons | Lucide React + emoji |
-| Data source | Google Maps Routes API (polled every 5 min) |
+| Data source | Google Maps Routes API (8 fixed polls/day, see pricing section) |
 | Database | SQLite via better-sqlite3 (local file: `data/traffic.db`) |
 | Scheduler | node-cron (in-process, started via Next.js instrumentation hook) |
 | Fallback | Client-side mock generation (`mock-data.ts`) when DB is empty or API fails |
@@ -66,7 +66,7 @@ trafico-aqp/
 │   │   ├── sutran-scraper.ts       # SUTRAN GIS alert scraper
 │   │   ├── incident-matcher.ts     # Coordinate → route/segment matching
 │   │   ├── map-utils.ts            # Closed road detection (static vs Google path)
-│   │   ├── scheduler.ts            # node-cron jobs: 5-min poll + daily recomputation
+│   │   ├── scheduler.ts            # node-cron jobs: 8 daily traffic polls + daily recomputation
 │   │   ├── mock-data.ts            # Mock traffic generation (permanent fallback)
 │   │   ├── uchumayo-path.ts        # Coordinate array for Vía Uchumayo
 │   │   ├── cerro-verde-path.ts     # Coordinate array for Vía Cerro Verde
@@ -131,15 +131,24 @@ The API returns both traffic states (5 segments per route-direction) and route p
 
 The app uses the Google Maps Routes API for real-time traffic data.
 
-**Free tier:** $200/month credit → ~40,000 requests/month.
+**Pricing (updated March 2025):** The old $200/month flat credit was replaced with per-SKU free tiers:
 
-**Our usage:** 4 calls every 5 minutes (2 routes × 2 directions) → ~34,560 calls/month. Headroom: ~5,400 calls/month spare.
+| SKU | Free/month | Then $/1000 | Triggered by |
+|-----|-----------|-------------|--------------|
+| Essentials | 10,000 | $5 | Basic routing |
+| Pro | 5,000 | $10 | `TRAFFIC_AWARE` |
+| **Enterprise** | **1,000** | **$15** | **`TRAFFIC_ON_POLYLINE`** |
+
+Our requests use `TRAFFIC_ON_POLYLINE` → **Enterprise SKU: 1,000 free calls/month**.
+
+**Our usage:** 8 fixed polls/day at strategic times (Peru time): 6, 8, 9, 12, 15, 17, 19, 21. Each poll = 4 API calls (2 routes × 2 directions). Total: 8 × 4 × 31 = **992 calls/month** → within the 1,000 free tier. **$0 cost.**
 
 **Critical limits:**
-- Do NOT add polling for more than 4 route-direction combos without recalculating the budget
-- Each new route adds 2 calls/cycle (salida + ingreso) → +8,640 calls/month
-- At 5-min intervals, the absolute max is 4 routes (8 directions) before exceeding the free tier
+- Do NOT add more poll times — current 992/month has only 8 calls of headroom
+- Each new route adds 2 calls/poll → 8 × 2 × 31 = 496 extra calls/month (would exceed free tier)
+- Adding a 3rd route requires dropping poll times or switching to Pro SKU (loses polyline colors)
 - The API key must be stored in `.env` (gitignored), never committed
+- If TRAFFIC_ON_POLYLINE is ever removed, requests drop to Pro SKU (5,000 free) but map loses speed coloring
 
 **Dynamic polylines:** Google returns `speedReadingIntervals` (NORMAL/SLOW/TRAFFIC_JAM) and an encoded polyline per route. The app renders Google's actual polyline on the map, colored by speed intervals — exactly like Google Maps does. This means the map automatically reflects real-world changes: road closures, detours, new infrastructure. Each route uses intermediate pass-through waypoints (`via: true`) to anchor it to the correct corridor while letting Google choose the best path (including detours).
 
