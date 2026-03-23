@@ -1,9 +1,18 @@
 import cron from "node-cron";
-import { pollAllRoutes } from "./google-traffic";
-import { insertSnapshots, upsertRoutePolyline, recomputeAverages, purgeOldSnapshots, upsertIncidents, resolveStaleIncidents } from "./db";
+import { pollAllRoutes } from "./tomtom-traffic";
+import { insertSnapshots, upsertRoutePolyline, recomputeAverages, purgeOldSnapshots, upsertIncidents, resolveStaleIncidents, getPeruHour } from "./db";
 import { fetchSutranAlerts } from "./sutran-scraper";
 
 let started = false;
+
+// Skip polling during low-traffic hours (midnight–5am Peru time).
+const POLL_START_HOUR = 5;
+const POLL_END_HOUR = 24;
+
+function isWithinPollingHours(): boolean {
+  const hour = getPeruHour();
+  return hour >= POLL_START_HOUR && hour < POLL_END_HOUR;
+}
 
 async function runTrafficPoll(): Promise<void> {
   const results = await pollAllRoutes();
@@ -43,29 +52,19 @@ export function startScheduler(): void {
   if (started) return;
   started = true;
 
-  console.log("[scheduler] Starting: traffic (8 fixed polls/day PET), incidents (30 min), daily recompute (03:00 PET)");
+  console.log("[scheduler] Starting: traffic (5 min, 5am-midnight PET via TomTom), incidents (30 min), daily recompute (03:00 PET)");
 
-  // Traffic polling — 8 fixed times per day (Peru time), weighted toward rush hours.
-  //
-  // BUDGET CONSTRAINT: TRAFFIC_ON_POLYLINE triggers Enterprise SKU (1,000 free calls/month).
-  // The $200/month credit was replaced with per-SKU free tiers on March 2025.
-  //   Enterprise: 1,000 free → then $15/1000
-  //   Pro:        5,000 free → then $10/1000 (only TRAFFIC_AWARE, no polyline colors)
-  //
-  // Schedule: 6, 8, 9, 12, 15, 17, 19, 21 (Peru time)
-  //   → 3 during AM rush (6, 8, 9), 2 midday (12, 15), 3 during PM rush (17, 19, 21)
-  //   → 8 polls/day × 4 calls × 31 days = 992 calls/month (under 1,000 free tier)
-  cron.schedule(
-    "0 6,8,9,12,15,17,19,21 * * *",
-    async () => {
-      try {
-        await runTrafficPoll();
-      } catch (err) {
-        console.error("[poll] Cycle failed:", err);
-      }
-    },
-    { timezone: "America/Lima" }
-  );
+  // Traffic polling — every 5 minutes, 5am–midnight Peru time.
+  // TomTom free tier: 2,500 non-tile requests/day.
+  // Usage: 4 calls × 12/hr × 19h = 912/day (36% of free tier).
+  cron.schedule("*/5 * * * *", async () => {
+    if (!isWithinPollingHours()) return;
+    try {
+      await runTrafficPoll();
+    } catch (err) {
+      console.error("[poll] Cycle failed:", err);
+    }
+  });
 
   // Incident polling — every 30 minutes
   cron.schedule("*/30 * * * *", async () => {

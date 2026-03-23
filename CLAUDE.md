@@ -25,7 +25,7 @@ You are a **senior software engineer** responsible for:
 | Map | Leaflet + react-leaflet |
 | Charts | Recharts |
 | Icons | Lucide React + emoji |
-| Data source | Google Maps Routes API (8 fixed polls/day, see pricing section) |
+| Data source | TomTom Routing API (polled every 5 min, 5am–midnight PET) |
 | Database | SQLite via better-sqlite3 (local file: `data/traffic.db`) |
 | Scheduler | node-cron (in-process, started via Next.js instrumentation hook) |
 | Fallback | Client-side mock generation (`mock-data.ts`) when DB is empty or API fails |
@@ -62,11 +62,11 @@ trafico-aqp/
 │   │   ├── roads.ts                # Segment definitions, route configs, constants
 │   │   ├── traffic.ts              # Route summary calculation, formatting utils
 │   │   ├── db.ts                   # SQLite connection, schema, query helpers
-│   │   ├── google-traffic.ts       # Google Maps API client, response parser
+│   │   ├── tomtom-traffic.ts        # TomTom Routing API client, progress array parser
 │   │   ├── sutran-scraper.ts       # SUTRAN GIS alert scraper
 │   │   ├── incident-matcher.ts     # Coordinate → route/segment matching
 │   │   ├── map-utils.ts            # Closed road detection (static vs Google path)
-│   │   ├── scheduler.ts            # node-cron jobs: 8 daily traffic polls + daily recomputation
+│   │   ├── scheduler.ts            # node-cron jobs: 5-min poll via TomTom + daily recomputation
 │   │   ├── mock-data.ts            # Mock traffic generation (permanent fallback)
 │   │   ├── uchumayo-path.ts        # Coordinate array for Vía Uchumayo
 │   │   ├── cerro-verde-path.ts     # Coordinate array for Vía Cerro Verde
@@ -106,7 +106,7 @@ trafico-aqp/
 ### Data Flow
 
 ```
-Google Maps API → scheduler.ts → db.ts (SQLite: snapshots + polylines) → API routes → useTrafficData.ts → components
+TomTom API → scheduler.ts → db.ts (SQLite: snapshots + polylines) → API routes → useTrafficData.ts → components
                                                                                            ↓ (on error)
                                                                                      mock-data.ts (fallback)
 ```
@@ -127,34 +127,25 @@ The API returns both traffic states (5 segments per route-direction) and route p
 - Prefer explicit types over `any`. Never use `any`.
 - All UI text is in Spanish (es-PE locale).
 
-## Google Maps Routes API
+## TomTom Routing API
 
-The app uses the Google Maps Routes API for real-time traffic data.
+The app uses the TomTom Calculate Route API for real-time traffic data. Migrated from Google Maps Routes API in March 2026 due to pricing (Google's Enterprise SKU gave only 1,000 free calls/month, TomTom gives 2,500/day).
 
-**Pricing (updated March 2025):** The old $200/month flat credit was replaced with per-SKU free tiers:
+**Pricing:** TomTom free tier: **2,500 non-tile requests/day** (~75,000/month). No credit card required. Commercial use OK. Overage: $0.75/1000 (vs Google's $15/1000).
 
-| SKU | Free/month | Then $/1000 | Triggered by |
-|-----|-----------|-------------|--------------|
-| Essentials | 10,000 | $5 | Basic routing |
-| Pro | 5,000 | $10 | `TRAFFIC_AWARE` |
-| **Enterprise** | **1,000** | **$15** | **`TRAFFIC_ON_POLYLINE`** |
-
-Our requests use `TRAFFIC_ON_POLYLINE` → **Enterprise SKU: 1,000 free calls/month**.
-
-**Our usage:** 8 fixed polls/day at strategic times (Peru time): 6, 8, 9, 12, 15, 17, 19, 21. Each poll = 4 API calls (2 routes × 2 directions). Total: 8 × 4 × 31 = **992 calls/month** → within the 1,000 free tier. **$0 cost.**
+**Our usage:** 4 calls every 5 minutes, 5am–midnight Peru time (19h/day). Budget: 4 × 12/hr × 19h = **912 calls/day** (36% of free tier). **$0 cost.**
 
 **Critical limits:**
-- Do NOT add more poll times — current 992/month has only 8 calls of headroom
-- Each new route adds 2 calls/poll → 8 × 2 × 31 = 496 extra calls/month (would exceed free tier)
-- Adding a 3rd route requires dropping poll times or switching to Pro SKU (loses polyline colors)
-- The API key must be stored in `.env` (gitignored), never committed
-- If TRAFFIC_ON_POLYLINE is ever removed, requests drop to Pro SKU (5,000 free) but map loses speed coloring
+- Free tier is 2,500/day — current usage is 912/day, ample headroom
+- Each new route adds 2 calls/cycle → +228/day at 5-min/19h (can support ~6 routes before hitting limit)
+- The API key must be stored in `.env` as `TOMTOM_API_KEY` (gitignored), never committed
+- Do NOT reduce polling interval below 5 min without checking daily budget
 
-**Dynamic polylines:** Google returns `speedReadingIntervals` (NORMAL/SLOW/TRAFFIC_JAM) and an encoded polyline per route. The app renders Google's actual polyline on the map, colored by speed intervals — exactly like Google Maps does. This means the map automatically reflects real-world changes: road closures, detours, new infrastructure. Each route uses intermediate pass-through waypoints (`via: true`) to anchor it to the correct corridor while letting Google choose the best path (including detours).
+**Dynamic polylines:** TomTom returns an encoded polyline (same format as Google, precision 5) and a `progress` array with cumulative `travelTimeInSeconds` and `distanceInMeters` at polyline points. Speed between points is derived as `Δdistance/Δtime`, mapped to our 5-tier congestion system. Circle waypoints (`circle(lat,lng,radius)`) anchor routes through the correct corridor without creating legs.
 
-**Card segments:** The polyline is split into 5 equal-distance segments for the summary cards. Congestion per segment is computed from overlapping speed intervals. Segment IDs (`uchumayo-0` through `uchumayo-4`) represent the 1st through 5th chunk of whatever route Google returns.
+**Card segments:** The route is split into 8 equal-distance segments using the progress array. Per-segment congestion ratio = `freeFlowSpeed / currentSpeed`, where free-flow time is distributed proportionally by distance from the route's `noTrafficTravelTimeInSeconds`. Segment IDs are `uchumayo-0` through `uchumayo-7`.
 
-See `docs/data-pipeline.md` for the full mapping and `docs/route-data-model.md` for the segment model.
+See `docs/data-pipeline.md` for the full mapping, `docs/route-data-model.md` for the segment model, and `docs/tomtom-migration.md` for migration details.
 
 ## Deployment
 

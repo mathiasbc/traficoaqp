@@ -82,7 +82,7 @@ function migrate(db: Database.Database): void {
       estimated_minutes REAL,
       congestion_ratio REAL,
       congestion_level TEXT,
-      source TEXT DEFAULT 'google',
+      source TEXT DEFAULT 'tomtom',
       UNIQUE(segment_id, direction, timestamp)
     );
 
