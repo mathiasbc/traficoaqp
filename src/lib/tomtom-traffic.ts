@@ -2,7 +2,7 @@ import type { Direction, RouteId, SpeedInterval, SpeedCategory } from "./types";
 import type { SnapshotRow } from "./db";
 import { getDayType, getPeruHour } from "./db";
 import { getCongestionLevel } from "./colors";
-import { AREQUIPA_CENTER, KM48_COORDS } from "./roads";
+import { AREQUIPA_CENTER, KM48_COORDS, UCHUMAYO_PATH, CERRO_VERDE_PATH } from "./roads";
 
 // ── TomTom Response Types ──
 
@@ -65,20 +65,31 @@ const BASE_URL = "https://api.tomtom.com/routing/1/calculateRoute";
 
 const NUM_SEGMENTS = 8;
 
-// Circle waypoints anchor routes through the correct corridor (pass-through, no stops).
-// Format: circle(lat,lon,radius_in_meters)
-const UCHUMAYO_CIRCLES = [
-  "circle(-16.406012,-71.591310,500)",
-  "circle(-16.413862,-71.622096,500)",
-];
+// Sample every Nth point from path files for supportingPoints (keeps request size reasonable)
+const SAMPLE_STEP = 5;
 
-const CERRO_VERDE_CIRCLES = [
-  "circle(-16.512236,-71.631102,500)",
-];
+function samplePath(path: [number, number][]): Array<{ latitude: number; longitude: number }> {
+  const points: Array<{ latitude: number; longitude: number }> = [];
+  for (let i = 0; i < path.length; i += SAMPLE_STEP) {
+    points.push({ latitude: path[i][0], longitude: path[i][1] });
+  }
+  // Always include the last point
+  const last = path[path.length - 1];
+  if (points[points.length - 1].latitude !== last[0] || points[points.length - 1].longitude !== last[1]) {
+    points.push({ latitude: last[0], longitude: last[1] });
+  }
+  return points;
+}
 
 // ── API Client ──
 
-function buildUrl(routeId: RouteId, direction: Direction): string {
+// Uses supportingPoints (POST) for reference route reconstruction.
+// This forces TomTom to follow our exact corridor and ignores ROAD_CLOSURE
+// incidents for travel time calculation — critical when monitoring closed roads.
+async function fetchRoute(
+  routeId: RouteId,
+  direction: Direction,
+): Promise<TomTomResponse> {
   const apiKey = process.env.TOMTOM_API_KEY;
   if (!apiKey) throw new Error("TOMTOM_API_KEY not set");
 
@@ -90,10 +101,10 @@ function buildUrl(routeId: RouteId, direction: Direction): string {
     ? `${KM48_COORDS[0]},${KM48_COORDS[1]}`
     : `${AREQUIPA_CENTER[0]},${AREQUIPA_CENTER[1]}`;
 
-  const circles = routeId === "cerro-verde" ? CERRO_VERDE_CIRCLES : UCHUMAYO_CIRCLES;
-  const orderedCircles = isSalida ? circles : [...circles].reverse();
-
-  const locations = [origin, ...orderedCircles, destination].join(":");
+  const fullPath = routeId === "cerro-verde" ? CERRO_VERDE_PATH : UCHUMAYO_PATH;
+  const sampledPoints = samplePath(fullPath);
+  // For ingreso (KM48→Arequipa), reverse the points
+  const supportingPoints = isSalida ? sampledPoints : [...sampledPoints].reverse();
 
   const params = new URLSearchParams({
     key: apiKey,
@@ -102,19 +113,18 @@ function buildUrl(routeId: RouteId, direction: Direction): string {
     sectionType: "traffic",
     routeRepresentation: "encodedPolyline",
     travelMode: "car",
+    minDeviationDistance: "0",
+    minDeviationTime: "0",
   });
 
-  // extendedRouteRepresentation supports multiple values via repeated params
-  return `${BASE_URL}/${locations}/json?${params}&extendedRouteRepresentation=travelTime&extendedRouteRepresentation=distance`;
-}
+  const url = `${BASE_URL}/${origin}:${destination}/json?${params}&extendedRouteRepresentation=travelTime&extendedRouteRepresentation=distance`;
 
-async function fetchRoute(
-  routeId: RouteId,
-  direction: Direction,
-): Promise<TomTomResponse> {
-  const url = buildUrl(routeId, direction);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ supportingPoints }),
+  });
 
-  const res = await fetch(url);
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`TomTom API ${res.status}: ${text}`);
